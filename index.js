@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes, ActivityType } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
@@ -32,7 +32,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 const activities = [{
     name: 'Sugar Rush',
-    type: 2,
+    type: ActivityType.Playing,
     assets: {
         large_image: 'sugarrush',
         large_text: 'Sugar Rush Slot'
@@ -56,8 +56,15 @@ client.once('ready', async () => {
 
         // Set presence with custom asset
         client.user.setPresence({
-            activities: [activities[0]],
-            status: 'online',
+            activities: [{
+                name: 'Sugar Rush',
+                type: ActivityType.Playing,
+                assets: {
+                    large_image: 'sugarrush',
+                    large_text: 'Sugar Rush Slot'
+                }
+            }],
+            status: 'online'
         });
 
         console.log('Successfully reloaded application (/) commands.');
