@@ -1,0 +1,85 @@
+const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config();
+const { initDatabase } = require('./config/database');
+
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildModeration
+    ]
+});
+
+client.commands = new Collection();
+
+// Command Handler
+const commands = [];
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
+    client.commands.set(command.data.name, command);
+    commands.push(command.data.toJSON());
+}
+
+// Deploy commands
+const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+
+const activities = [{
+    name: 'Sugar Rush Slot',
+    type: 0, // Playing
+    assets: {
+        large_image: 'sugarrush', // The name you gave your uploaded asset
+        large_text: 'Sugar Rush Slot' // Tooltip text when hovering over the image
+    }
+}];
+
+let currentActivity = 0;
+
+initDatabase();
+
+client.once('ready', async () => {
+    try {
+        console.log('Started refreshing application (/) commands.');
+
+        await rest.put(
+            Routes.applicationCommands(client.user.id),
+            { body: commands },
+        );
+
+        // Set presence with custom asset
+        client.user.setPresence({
+            activities: [activities[0]],
+            status: 'online',
+        });
+
+        console.log('Successfully reloaded application (/) commands.');
+        console.log(`Logged in as ${client.user.tag}!`);
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+// Interaction handler
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isChatInputCommand()) return;
+
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
+
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        console.error(error);
+        await interaction.reply({ 
+            content: 'There was an error executing this command!', 
+            ephemeral: true 
+        });
+    }
+});
+
+client.login(process.env.TOKEN); 
