@@ -1,8 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const { isAdmin } = require('../utils/permissions');
-
-// In a production environment, you'd want to use a database
-const warnings = new Map();
+const Warning = require('../models/Warning');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -50,37 +48,39 @@ module.exports = {
         const target = interaction.options.getUser('target');
         const guildId = interaction.guild.id;
         const userId = target.id;
-        const key = `${guildId}-${userId}`;
 
         switch (subcommand) {
             case 'add': {
                 const reason = interaction.options.getString('reason');
-                if (!warnings.has(key)) {
-                    warnings.set(key, []);
-                }
-                
-                const userWarnings = warnings.get(key);
-                userWarnings.push({
-                    reason,
-                    timestamp: Date.now(),
-                    moderator: interaction.user.id
+                await Warning.create({
+                    guildId,
+                    userId,
+                    moderatorId: interaction.user.id,
+                    reason
+                });
+
+                const warningCount = await Warning.count({
+                    where: { guildId, userId }
                 });
 
                 await interaction.reply({
-                    content: `Warning added for ${target.tag}\nReason: ${reason}\nTotal warnings: ${userWarnings.length}`,
+                    content: `Warning added for ${target.tag}\nReason: ${reason}\nTotal warnings: ${warningCount}`,
                     ephemeral: true
                 });
                 break;
             }
             case 'list': {
-                const userWarnings = warnings.get(key) || [];
+                const warnings = await Warning.findAll({
+                    where: { guildId, userId }
+                });
+
                 const embed = new EmbedBuilder()
                     .setTitle(`Warnings for ${target.tag}`)
                     .setColor('#FF4444')
                     .setDescription(
-                        userWarnings.length > 0
-                            ? userWarnings.map((w, i) => 
-                                `${i + 1}. ${w.reason} (<t:${Math.floor(w.timestamp / 1000)}:R>)`
+                        warnings.length > 0
+                            ? warnings.map((w, i) => 
+                                `${i + 1}. ${w.reason} (<t:${Math.floor(w.createdAt.getTime() / 1000)}:R>)`
                             ).join('\n')
                             : 'No warnings'
                     );
@@ -92,7 +92,10 @@ module.exports = {
                 break;
             }
             case 'clear': {
-                warnings.delete(key);
+                await Warning.destroy({
+                    where: { guildId, userId }
+                });
+
                 await interaction.reply({
                     content: `Cleared all warnings for ${target.tag}`,
                     ephemeral: true
