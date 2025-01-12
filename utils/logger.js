@@ -20,15 +20,24 @@ class Logger {
         const embed = new EmbedBuilder()
             .setTitle(`🛡️ ${action}`)
             .setColor('#FF0000')
-            .addFields(
+            .setTimestamp();
+
+        if (action === 'Channel Purged') {
+            embed.addFields(
+                { name: 'Moderator', value: `${interaction.user.tag}`, inline: true },
+                { name: 'Channel', value: `<#${details.channelId}>`, inline: true },
+                { name: 'Messages Purged', value: `${details.messageCount}`, inline: true }
+            );
+        } else {
+            embed.addFields(
                 { name: 'Target', value: `${target.tag} (${target.id})`, inline: true },
                 { name: 'Moderator', value: `${interaction.user.tag}`, inline: true },
                 { name: 'Reason', value: reason || 'No reason provided' }
-            )
-            .setTimestamp();
+            );
 
-        if (details.deleteDays) embed.addFields({ name: 'Messages Deleted', value: `${details.deleteDays} days` });
-        if (details.duration) embed.addFields({ name: 'Duration', value: details.duration });
+            if (details.deleteDays) embed.addFields({ name: 'Messages Deleted', value: `${details.deleteDays} days` });
+            if (details.duration) embed.addFields({ name: 'Duration', value: details.duration });
+        }
 
         await this.logToChannel(interaction.guild, embed);
     }
