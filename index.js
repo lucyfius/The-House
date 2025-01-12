@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 const { initDatabase } = require('./config/database');
+const Logger = require('./utils/logger');
 
 const client = new Client({
     intents: [
@@ -42,6 +43,8 @@ let currentActivity = 0;
 
 initDatabase();
 
+client.logger = new Logger(client);
+
 client.once('ready', async () => {
     try {
         console.log('Started refreshing application (/) commands.');
@@ -80,6 +83,18 @@ client.on('interactionCreate', async interaction => {
             ephemeral: true 
         });
     }
+});
+
+client.on('messageDelete', async message => {
+    await client.logger.logMessageDelete(message);
+});
+
+client.on('guildMemberUpdate', async (oldMember, newMember) => {
+    await client.logger.logMemberUpdate(oldMember, newMember);
+});
+
+client.on('userUpdate', async (oldUser, newUser) => {
+    await client.logger.logUserUpdate(oldUser, newUser);
 });
 
 client.login(process.env.TOKEN); 

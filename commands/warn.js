@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const { isAdmin } = require('../utils/permissions');
 const Warning = require('../models/Warning');
+const { client } = require('../index');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -62,6 +63,69 @@ module.exports = {
                 const warningCount = await Warning.count({
                     where: { guildId, userId }
                 });
+
+                // Create warning DM embed
+                const warningEmbed = new EmbedBuilder()
+                    .setTitle('⚠️ Warning Received')
+                    .setColor('#FF4444')
+                    .setDescription(`You have received a warning in ${interaction.guild.name}`)
+                    .addFields(
+                        { name: 'Reason', value: reason },
+                        { name: 'Moderator', value: interaction.user.tag },
+                        { name: 'Total Warnings', value: `${warningCount}` }
+                    )
+                    .setTimestamp();
+
+                try {
+                    await target.send({ embeds: [warningEmbed] });
+                } catch (error) {
+                    console.error('Failed to DM user:', error);
+                }
+
+                await client.logger.logModAction(interaction, 'Member Warned', target, reason, { warningCount });
+
+                // Auto-kick on 3 warnings
+                if (warningCount >= 3) {
+                    const kickMember = await interaction.guild.members.fetch(target.id);
+                    if (kickMember) {
+                        try {
+                            const kickReason = `Automatic kick: Reached ${warningCount} warnings`;
+                            await kickMember.kick(kickReason);
+                            
+                            // DM user about kick
+                            const kickEmbed = new EmbedBuilder()
+                                .setTitle('🚫 Auto-Kick Notice')
+                                .setColor('#FF0000')
+                                .setDescription(`You have been automatically kicked from ${interaction.guild.name}`)
+                                .addFields(
+                                    { name: 'Reason', value: kickReason },
+                                    { name: 'Warning Count', value: `${warningCount}` }
+                                )
+                                .setTimestamp();
+
+                            try {
+                                await target.send({ embeds: [kickEmbed] });
+                            } catch (error) {
+                                console.error('Failed to DM user about kick:', error);
+                            }
+
+                            await client.logger.logModAction(interaction, 'Member Auto-Kicked', target, kickReason);
+
+                            await interaction.reply({
+                                content: `Warning added for ${target.tag}\nReason: ${reason}\nTotal warnings: ${warningCount}\nUser has been automatically kicked for reaching 3 warnings.`,
+                                ephemeral: true
+                            });
+                            return;
+                        } catch (error) {
+                            console.error('Failed to auto-kick member:', error);
+                            await interaction.reply({
+                                content: `Warning added for ${target.tag}\nReason: ${reason}\nTotal warnings: ${warningCount}\nFailed to auto-kick member. Please check bot permissions.`,
+                                ephemeral: true
+                            });
+                            return;
+                        }
+                    }
+                }
 
                 await interaction.reply({
                     content: `Warning added for ${target.tag}\nReason: ${reason}\nTotal warnings: ${warningCount}`,

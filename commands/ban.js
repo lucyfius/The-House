@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { isAdmin } = require('../utils/permissions');
+const { client } = require('../index');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -36,6 +37,8 @@ module.exports = {
                 deleteMessageDays: days,
                 reason: reason 
             });
+            
+            await client.logger.logModAction(interaction, 'Member Banned', target, reason, { deleteDays: days });
             
             await interaction.reply({
                 content: `Successfully banned ${target.tag}\nReason: ${reason}\nMessage history deleted: ${days} days`,
