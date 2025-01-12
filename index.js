@@ -32,10 +32,11 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 const activities = [{
     name: 'Sugar Rush Slot',
-    type: 0, // Playing
+    type: 0,
+    state: 'Playing Sugar Rush',
     assets: {
-        large_image: 'sugarrush', // The name you gave your uploaded asset
-        large_text: 'Sugar Rush Slot' // Tooltip text when hovering over the image
+        large_image: 'sugarrush',
+        large_text: 'Sugar Rush Slot'
     }
 }];
 
