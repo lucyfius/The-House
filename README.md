@@ -1,6 +1,6 @@
 # The House Bot
 
-A Discord moderation bot designed exclusively for The House server, featuring comprehensive administrative tools and PostgreSQL integration.
+A Discord moderation bot designed exclusively for the Sweepstakes.wiki server, featuring comprehensive administrative tools and PostgreSQL integration.
 
 ## Features
 
