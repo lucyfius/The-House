@@ -31,9 +31,8 @@ for (const file of commandFiles) {
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 const activities = [{
-    name: 'Sugar Rush Slot',
-    type: 0,
-    state: 'Playing Sugar Rush',
+    name: 'Sugar Rush',
+    type: 2,
     assets: {
         large_image: 'sugarrush',
         large_text: 'Sugar Rush Slot'
