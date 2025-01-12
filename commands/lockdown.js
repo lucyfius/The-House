@@ -41,6 +41,8 @@ module.exports = {
                     content: '🔒 Channel has been locked. Only administrators and moderators can send messages.',
                     ephemeral: false
                 });
+
+                await interaction.client.logger.logModAction(interaction, 'Channel Locked', { id: channel.id, tag: channel.name }, 'Channel lockdown enabled');
             } else {
                 await channel.permissionOverwrites.edit(everyoneRole, {
                     SendMessages: null,
@@ -51,6 +53,8 @@ module.exports = {
                     content: '🔓 Channel has been unlocked. Everyone can now send messages.',
                     ephemeral: false
                 });
+
+                await interaction.client.logger.logModAction(interaction, 'Channel Unlocked', { id: channel.id, tag: channel.name }, 'Channel lockdown disabled');
             }
         } catch (error) {
             console.error('Lockdown error:', error);

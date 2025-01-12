@@ -34,6 +34,7 @@ module.exports = {
 
         try {
             await target.kick(reason);
+            await interaction.client.logger.logModAction(interaction, 'Member Kicked', target.user, reason);
             await interaction.reply({
                 content: `Successfully kicked ${target.user.tag}\nReason: ${reason}`,
                 ephemeral: true

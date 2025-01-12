@@ -1,7 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const { isAdmin } = require('../utils/permissions');
 const Warning = require('../models/Warning');
-const { client } = require('../index');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -82,7 +81,7 @@ module.exports = {
                     console.error('Failed to DM user:', error);
                 }
 
-                await client.logger.logModAction(interaction, 'Member Warned', target, reason, { warningCount });
+                await interaction.client.logger.logModAction(interaction, 'Member Warned', target, reason, { warningCount });
 
                 // Auto-kick on 3 warnings
                 if (warningCount >= 3) {
@@ -109,7 +108,7 @@ module.exports = {
                                 console.error('Failed to DM user about kick:', error);
                             }
 
-                            await client.logger.logModAction(interaction, 'Member Auto-Kicked', target, kickReason);
+                            await interaction.client.logger.logModAction(interaction, 'Member Auto-Kicked', target, kickReason);
 
                             await interaction.reply({
                                 content: `Warning added for ${target.tag}\nReason: ${reason}\nTotal warnings: ${warningCount}\nUser has been automatically kicked for reaching 3 warnings.`,

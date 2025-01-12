@@ -23,6 +23,7 @@ module.exports = {
 
         try {
             await interaction.guild.members.unban(userId);
+            await interaction.client.logger.logModAction(interaction, 'Member Unbanned', { id: userId, tag: userId }, reason);
             await interaction.reply({
                 content: `Successfully unbanned user with ID: ${userId}`,
                 ephemeral: true
