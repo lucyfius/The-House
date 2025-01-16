@@ -45,21 +45,26 @@ client.once('ready', async () => {
             { body: commands },
         );
 
-        client.user.setActivity({
-            name: 'Sugar Rush',
-            type: ActivityType.Playing,
-            state: 'Slot Machine',
-            assets: {
-                large_image: 'sugarrush',
-                large_text: 'Sugar Rush Slot',
-                application_id: process.env.CLIENT_ID
-            },
-            buttons: [
-                {
-                    label: 'Play Sugar Rush',
-                    url: 'https://stake.us/casino/games/pragmatic-play-sugar-rush-1000'
+        // Set presence with full details
+        client.user.setPresence({
+            activities: [{
+                name: 'Sugar Rush',
+                type: ActivityType.Playing,
+                state: 'Slot Machine',
+                assets: {
+                    large_image: 'sugarrush',
+                    large_text: 'Sugar Rush Slot'
                 }
-            ]
+            }],
+            status: 'online'
+        });
+
+        // Log any presence update errors
+        client.on('presenceUpdate', (oldPresence, newPresence) => {
+            console.log('Presence Update:', {
+                old: oldPresence?.activities,
+                new: newPresence?.activities
+            });
         });
 
         console.log('Successfully reloaded application (/) commands.');
