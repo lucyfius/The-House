@@ -50,15 +50,23 @@ client.once('ready', async () => {
             type: ActivityType.Playing,
             state: 'Slot Machine',
             assets: {
-                largeImage: 'sugarrush',
-                largeText: 'Sugar Rush Slot'
-            }
+                large_image: 'sugarrush',
+                large_text: 'Sugar Rush Slot',
+                application_id: process.env.CLIENT_ID
+            },
+            buttons: [
+                {
+                    label: 'Play Sugar Rush',
+                    url: 'https://stake.us/casino/games/pragmatic-play-sugar-rush-1000'
+                }
+            ]
         });
 
         console.log('Successfully reloaded application (/) commands.');
         console.log(`Logged in as ${client.user.tag}!`);
     } catch (error) {
         console.error('Error setting presence:', error);
+        console.error(error.stack);
     }
 });
 
