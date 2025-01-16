@@ -32,7 +32,7 @@ const BetStats = sequelize.define('BetStats', {
         allowNull: false
     },
     odds: {
-        type: DataTypes.FLOAT,
+        type: DataTypes.STRING,
         allowNull: true
     },
     details: {
