@@ -94,7 +94,7 @@ module.exports = {
                 const details = interaction.options.getString('details');
 
                 try {
-                    await BetStats.create({
+                    const bet = await BetStats.create({
                         guildId: interaction.guild.id,
                         userId: interaction.user.id,
                         betType,
@@ -104,9 +104,43 @@ module.exports = {
                         details
                     });
 
+                    // Create embed for the bet
+                    const embed = new EmbedBuilder()
+                        .setTitle('🎲 New Bet Recorded')
+                        .setColor(result ? '#00FF00' : '#FF0000')
+                        .addFields(
+                            { name: 'Type', value: betType.replace(/_/g, ' '), inline: true },
+                            { name: 'Result', value: result ? '✅ Win' : '❌ Loss', inline: true },
+                            { name: 'Amount', value: `$${amount.toFixed(2)}`, inline: true },
+                            { name: 'Odds', value: odds ? `${odds}` : 'Not specified', inline: true },
+                            { name: 'Details', value: details || 'No details provided' }
+                        )
+                        .setFooter({ text: `Bet ID: ${bet.id}` })
+                        .setTimestamp();
+
+                    // Get user's current stats
+                    const userStats = await BetStats.findAll({
+                        where: {
+                            userId: interaction.user.id,
+                            guildId: interaction.guild.id
+                        }
+                    });
+
+                    const totalBets = userStats.length;
+                    const wins = userStats.filter(b => b.result).length;
+                    const winRate = ((wins / totalBets) * 100).toFixed(2);
+                    const totalProfit = userStats.reduce((sum, b) => 
+                        sum + (b.result ? b.amount : -b.amount), 0);
+
+                    embed.addFields(
+                        { name: '\u200B', value: '\u200B' },
+                        { name: 'Total Bets', value: totalBets.toString(), inline: true },
+                        { name: 'Win Rate', value: `${winRate}%`, inline: true },
+                        { name: 'Total Profit/Loss', value: `$${totalProfit.toFixed(2)}`, inline: true }
+                    );
+
                     await interaction.reply({
-                        content: `Bet recorded: ${result === 'win' ? '✅ Win' : '❌ Loss'} - $${amount} on ${betType}`,
-                        ephemeral: true
+                        embeds: [embed]
                     });
                 } catch (error) {
                     console.error('Error adding bet:', error);
