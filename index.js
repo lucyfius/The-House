@@ -32,19 +32,6 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 const clientId = process.env.CLIENT_ID;
 
-const activities = [{
-    name: 'Sugar Rush',
-    type: ActivityType.Playing,
-    state: 'Slot Machine',
-    applicationId: clientId,
-    assets: {
-        large_image: 'sugarrush',
-        large_text: 'Sugar Rush Slot'
-    }
-}];
-
-let currentActivity = 0;
-
 initDatabase();
 
 client.logger = new Logger(client);
@@ -58,18 +45,14 @@ client.once('ready', async () => {
             { body: commands },
         );
 
-        client.user.setPresence({
-            activities: [{
-                name: 'Sugar Rush',
-                type: ActivityType.Playing,
-                state: 'Slot Machine',
-                applicationId: clientId,
-                assets: {
-                    large_image: 'sugarrush',
-                    large_text: 'Sugar Rush Slot'
-                }
-            }],
-            status: 'online'
+        client.user.setActivity({
+            name: 'Sugar Rush',
+            type: ActivityType.Playing,
+            state: 'Slot Machine',
+            assets: {
+                largeImage: 'sugarrush',
+                largeText: 'Sugar Rush Slot'
+            }
         });
 
         console.log('Successfully reloaded application (/) commands.');
