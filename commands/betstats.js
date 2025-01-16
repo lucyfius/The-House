@@ -142,6 +142,7 @@ module.exports = {
 
                     embed.addFields(
                         { name: '\u200B', value: '\u200B' },
+                        { name: `${interaction.user.tag}'s Record`, value: '━━━━━━━━━━━━━━' },
                         { name: 'Total Bets', value: totalBets.toString(), inline: true },
                         { name: 'Win Rate', value: `${winRate}%`, inline: true },
                         { name: 'Total Profit/Loss', value: `$${totalProfit.toFixed(2)}`, inline: true }
