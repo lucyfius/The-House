@@ -33,6 +33,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 const activities = [{
     name: 'Sugar Rush',
     type: ActivityType.Playing,
+    state: 'Slot Machine',
     assets: {
         large_image: 'sugarrush',
         large_text: 'Sugar Rush Slot'
@@ -59,6 +60,7 @@ client.once('ready', async () => {
             activities: [{
                 name: 'Sugar Rush',
                 type: ActivityType.Playing,
+                state: 'Slot Machine',
                 assets: {
                     large_image: 'sugarrush',
                     large_text: 'Sugar Rush Slot'
