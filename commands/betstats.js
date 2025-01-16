@@ -99,12 +99,6 @@ module.exports = {
                 const result = interaction.options.getString('result') === 'win';
                 const amount = interaction.options.getNumber('amount');
                 const odds = interaction.options.getString('odds');
-                if (odds && !validateOdds(odds)) {
-                    return interaction.reply({
-                        content: 'Invalid odds format. Please use formats like: 50/1, 75%, 2.5, +150, -200, or 50-1',
-                        ephemeral: true
-                    });
-                }
                 const details = interaction.options.getString('details');
 
                 try {
