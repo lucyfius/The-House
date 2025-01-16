@@ -30,10 +30,13 @@ for (const file of commandFiles) {
 // Deploy commands
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
+const clientId = process.env.CLIENT_ID;
+
 const activities = [{
     name: 'Sugar Rush',
     type: ActivityType.Playing,
     state: 'Slot Machine',
+    applicationId: clientId,
     assets: {
         large_image: 'sugarrush',
         large_text: 'Sugar Rush Slot'
@@ -55,12 +58,12 @@ client.once('ready', async () => {
             { body: commands },
         );
 
-        // Set presence with custom asset
         client.user.setPresence({
             activities: [{
                 name: 'Sugar Rush',
                 type: ActivityType.Playing,
                 state: 'Slot Machine',
+                applicationId: clientId,
                 assets: {
                     large_image: 'sugarrush',
                     large_text: 'Sugar Rush Slot'
