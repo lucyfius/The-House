@@ -38,9 +38,9 @@ module.exports = {
                     option.setName('amount')
                         .setDescription('Amount won/lost')
                         .setRequired(true))
-                .addNumberOption(option =>
+                .addStringOption(option =>
                     option.setName('odds')
-                        .setDescription('Betting odds (optional)'))
+                        .setDescription('Betting odds (e.g., 50/1, 75%, 2.5)'))
                 .addStringOption(option =>
                     option.setName('details')
                         .setDescription('Additional details')))
@@ -98,7 +98,13 @@ module.exports = {
                 const betType = interaction.options.getString('type');
                 const result = interaction.options.getString('result') === 'win';
                 const amount = interaction.options.getNumber('amount');
-                const odds = interaction.options.getNumber('odds');
+                const odds = interaction.options.getString('odds');
+                if (odds && !validateOdds(odds)) {
+                    return interaction.reply({
+                        content: 'Invalid odds format. Please use formats like: 50/1, 75%, 2.5, +150, -200, or 50-1',
+                        ephemeral: true
+                    });
+                }
                 const details = interaction.options.getString('details');
 
                 try {
@@ -120,7 +126,7 @@ module.exports = {
                             { name: 'Type', value: betType.replace(/_/g, ' '), inline: true },
                             { name: 'Result', value: result ? '✅ Win' : '❌ Loss', inline: true },
                             { name: 'Amount', value: `$${amount.toFixed(2)}`, inline: true },
-                            { name: 'Odds', value: odds ? `${odds}` : 'Not specified', inline: true },
+                            { name: 'Odds', value: odds || 'Not specified', inline: true },
                             { name: 'Details', value: details || 'No details provided' }
                         )
                         .setFooter({ text: `Bet ID: ${bet.id}` })
