@@ -5,4 +5,9 @@ function isAdmin(member) {
            member.roles.cache.some(role => role.name.toLowerCase() === 'moderator');
 }
 
-module.exports = { isAdmin }; 
+function canModerate(moderator, target) {
+    if (!moderator.roles || !target.roles) return false;
+    return moderator.roles.highest.position > target.roles.highest.position;
+}
+
+module.exports = { isAdmin, canModerate }; 

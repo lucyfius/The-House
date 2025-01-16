@@ -1,7 +1,8 @@
-const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, PermissionFlagsBits } = require('discord.js');
 const { generateWinRateChart, generateProfitChart } = require('../utils/chartGenerator');
 const BetStats = require('../models/BetStats');
 const { Op } = require('sequelize');
+const { isAdmin } = require('../utils/permissions');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -83,6 +84,13 @@ module.exports = {
                         .setRequired(true))),
 
     async execute(interaction) {
+        if (!isAdmin(interaction.member)) {
+            return interaction.reply({
+                content: 'You do not have permission to use this command.',
+                ephemeral: true
+            });
+        }
+
         const subcommand = interaction.options.getSubcommand();
 
         switch (subcommand) {
@@ -193,8 +201,8 @@ module.exports = {
                     const totalBets = bets.length;
                     const wins = bets.filter(bet => bet.result).length;
                     const winRate = totalBets ? (wins / totalBets * 100).toFixed(2) : 0;
-                    const totalProfit = bets.reduce((sum, bet => 
-                        sum + (bet.result ? bet.amount : -bet.amount)), 0);
+                    const totalProfit = bets.reduce((sum, bet) => 
+                        sum + (bet.result ? bet.amount : -bet.amount), 0);
 
                     // Prepare data for charts
                     const chartData = {
