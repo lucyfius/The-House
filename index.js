@@ -62,7 +62,7 @@ client.once('ready', async () => {
                 type: ActivityType.Playing,
                 state: 'Slot Machine',
                 assets: {
-                    large_image: 'sugarrush',
+                    large_image: 'asset_name',
                     large_text: 'Sugar Rush Slot'
                 }
             }],
