@@ -58,7 +58,7 @@ client.once('ready', async () => {
         console.log('Successfully reloaded application (/) commands.');
         console.log(`Logged in as ${client.user.tag}!`);
     } catch (error) {
-        console.error(error);
+        console.error('Error setting presence:', error);
     }
 });
 
