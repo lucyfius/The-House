@@ -1,17 +1,25 @@
 const { EmbedBuilder } = require('discord.js');
+const { LOG_CHANNELS } = require('./logChannels');
 
 class Logger {
     constructor(client) {
         this.client = client;
     }
 
-    async logToChannel(guild, embed) {
+    async logToChannel(guild, embed, logType = 'SERVER_LOGS') {
+        const channelName = LOG_CHANNELS[logType];
         const logChannel = guild.channels.cache.find(
-            channel => channel.name === 'server-logs'
+            channel => channel.name === channelName
         );
         
         if (logChannel) {
-            await logChannel.send({ embeds: [embed] });
+            try {
+                await logChannel.send({ embeds: [embed] });
+            } catch (error) {
+                console.error(`Failed to log to ${channelName}:`, error);
+            }
+        } else {
+            console.warn(`Log channel ${channelName} not found in guild ${guild.name}`);
         }
     }
 
@@ -56,7 +64,7 @@ class Logger {
             )
             .setTimestamp();
 
-        await this.logToChannel(message.guild, embed);
+        await this.logToChannel(message.guild, embed, 'MESSAGE_LOGS');
     }
 
     // Member Events
