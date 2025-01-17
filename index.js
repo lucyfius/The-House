@@ -4,6 +4,7 @@ const path = require('path');
 require('dotenv').config();
 const { initDatabase } = require('./config/database');
 const Logger = require('./utils/logger');
+const ReactionRole = require('./models/ReactionRole');
 
 const client = new Client({
     intents: [
@@ -11,7 +12,9 @@ const client = new Client({
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildModeration,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMessages
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.GuildEmojisAndStickers
     ]
 });
 
@@ -105,6 +108,56 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
 
 client.on('userUpdate', async (oldUser, newUser) => {
     await client.logger.logUserUpdate(oldUser, newUser);
+});
+
+client.on('messageReactionAdd', async (reaction, user) => {
+    if (user.bot) return;
+
+    try {
+        const reactionRole = await ReactionRole.findOne({
+            where: {
+                messageId: reaction.message.id,
+                emoji: reaction.emoji.toString()
+            }
+        });
+
+        if (reactionRole) {
+            const guild = reaction.message.guild;
+            const member = await guild.members.fetch(user.id);
+            const role = await guild.roles.fetch(reactionRole.roleId);
+
+            if (role) {
+                await member.roles.add(role);
+            }
+        }
+    } catch (error) {
+        console.error('Error adding reaction role:', error);
+    }
+});
+
+client.on('messageReactionRemove', async (reaction, user) => {
+    if (user.bot) return;
+
+    try {
+        const reactionRole = await ReactionRole.findOne({
+            where: {
+                messageId: reaction.message.id,
+                emoji: reaction.emoji.toString()
+            }
+        });
+
+        if (reactionRole) {
+            const guild = reaction.message.guild;
+            const member = await guild.members.fetch(user.id);
+            const role = await guild.roles.fetch(reactionRole.roleId);
+
+            if (role) {
+                await member.roles.remove(role);
+            }
+        }
+    } catch (error) {
+        console.error('Error removing reaction role:', error);
+    }
 });
 
 client.login(process.env.TOKEN); 
