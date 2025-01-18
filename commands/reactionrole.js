@@ -1,61 +1,75 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const { isAdmin } = require('../utils/permissions');
 const ReactionRole = require('../models/ReactionRole');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('reactionrole')
-        .setDescription('Add reaction roles to a message')
+        .setDescription('Add reaction roles to an existing message')
         .addStringOption(option =>
             option.setName('messageid')
-                .setDescription('The ID of the message to add reaction roles to')
+                .setDescription('💬 Right-click message → Copy ID (Enable Developer Mode in Settings)')
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('pairs')
-                .setDescription('Emoji-role pairs (format: emoji1=@role1,emoji2=@role2)')
+                .setDescription('✨ Format: 👍 @Role1, 🎮 @Role2 (Add space between emoji & role)')
                 .setRequired(true))
+        .addStringOption(option =>
+            option.setName('note')
+                .setDescription('📝 Optional: Add instructions for users (e.g., "React to get roles!")'))
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
         if (!isAdmin(interaction.member)) {
             return interaction.reply({
-                content: 'You do not have permission to use this command.',
+                content: 'You need Administrator permissions to use this command.',
                 ephemeral: true
             });
         }
 
         const messageId = interaction.options.getString('messageid');
         const pairsString = interaction.options.getString('pairs');
+        const note = interaction.options.getString('note');
 
         try {
             const message = await interaction.channel.messages.fetch(messageId);
             if (!message) {
                 return interaction.reply({
-                    content: 'Message not found in this channel.',
+                    content: '❌ Message not found! Make sure you\'re using this command in the same channel as the message.',
                     ephemeral: true
                 });
             }
 
-            // Parse emoji-role pairs
-            const pairs = pairsString.split(',').map(pair => {
-                const [emoji, roleId] = pair.trim().split('=');
-                return {
-                    emoji: emoji.trim(),
-                    roleId: roleId.trim().replace(/[<@&>]/g, '') // Clean up role mention
-                };
-            });
+            // Parse emoji-role pairs with better error handling
+            const pairs = [];
+            const rawPairs = pairsString.split(',').map(p => p.trim());
 
-            // Validate roles
-            for (const pair of pairs) {
-                const role = await interaction.guild.roles.fetch(pair.roleId);
-                if (!role) {
+            for (const pair of rawPairs) {
+                const [emoji, roleId] = pair.split(/\s+/);
+                if (!emoji || !roleId) {
                     return interaction.reply({
-                        content: `Role not found for emoji ${pair.emoji}`,
+                        content: `❌ Invalid format in pair: "${pair}"\nFormat should be: 👍 @Role`,
                         ephemeral: true
                     });
                 }
+
+                const cleanRoleId = roleId.replace(/[<@&>]/g, '');
+                const role = await interaction.guild.roles.fetch(cleanRoleId);
+
+                if (!role) {
+                    return interaction.reply({
+                        content: `❌ Role not found for emoji ${emoji}`,
+                        ephemeral: true
+                    });
+                }
+
+                pairs.push({
+                    emoji: emoji,
+                    roleId: role.id
+                });
+
                 // Add reaction to message
-                await message.react(pair.emoji);
+                await message.react(emoji);
             }
 
             await ReactionRole.create({
@@ -65,14 +79,31 @@ module.exports = {
                 emojiRolePairs: pairs
             });
 
+            // Create a nice embed showing the setup
+            const embed = new EmbedBuilder()
+                .setTitle('✅ Reaction Roles Setup Complete')
+                .setColor('#00ff00')
+                .setDescription(`Successfully set up ${pairs.length} reaction roles for [this message](${message.url})`)
+                .addFields(
+                    pairs.map(pair => ({
+                        name: `${pair.emoji} Role`,
+                        value: `<@&${pair.roleId}>`,
+                        inline: true
+                    }))
+                );
+
+            if (note) {
+                embed.addFields({ name: 'Note', value: note });
+            }
+
             await interaction.reply({
-                content: `Successfully added ${pairs.length} reaction roles to the message.`,
+                embeds: [embed],
                 ephemeral: true
             });
         } catch (error) {
             console.error('Error creating reaction roles:', error);
             await interaction.reply({
-                content: 'Failed to create reaction roles. Make sure the emojis and roles are valid.',
+                content: '❌ Failed to set up reaction roles. Make sure:\n1. The message ID is correct\n2. The emojis are valid\n3. The roles are properly mentioned\n4. The bot has permission to manage roles',
                 ephemeral: true
             });
         }
