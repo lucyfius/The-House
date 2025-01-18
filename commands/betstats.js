@@ -62,7 +62,7 @@ module.exports = {
                         .setRequired(true))
                 .addNumberOption(option =>
                     option.setName('units')
-                        .setDescription('💰 New units amount')))
+                        .setDescription('💰 New units amount'))),
 
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();

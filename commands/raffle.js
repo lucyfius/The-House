@@ -55,7 +55,7 @@ module.exports = {
                 .addIntegerOption(option =>
                     option.setName('amount')
                         .setDescription('💵 How much do you want to bet?')
-                        .setRequired(true))),
+                        .setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('accept')
