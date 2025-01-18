@@ -45,4 +45,27 @@ const BetStats = sequelize.define('BetStats', {
     }
 });
 
-module.exports = BetStats; 
+const BetStatsView = sequelize.define('BetStatsView', {
+    guildId: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    channelId: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    messageId: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    userId: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    timeframe: {
+        type: DataTypes.STRING,
+        defaultValue: 'all'
+    }
+});
+
+module.exports = { BetStats, BetStatsView }; 

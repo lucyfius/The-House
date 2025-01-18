@@ -3,33 +3,57 @@ const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
 const chartGenerator = new ChartJSNodeCanvas({
     width: 800,
     height: 400,
-    backgroundColour: '#ffffff'
+    backgroundColour: '#2F3136' // Discord-like dark theme
 });
 
-async function generateWinRateChart(data) {
+async function generateUnitsChart(data) {
     const config = {
         type: 'line',
         data: {
             labels: data.labels,
             datasets: [{
-                label: 'Win Rate %',
-                data: data.winRates,
-                fill: false,
-                borderColor: '#00ff00',
-                tension: 0.1
+                label: 'Units',
+                data: data.units,
+                borderColor: '#5865F2', // Discord blue
+                backgroundColor: 'rgba(88, 101, 242, 0.1)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2
             }]
         },
         options: {
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100
+            responsive: true,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#FFFFFF'
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Units Over Time',
+                    color: '#FFFFFF',
+                    font: {
+                        size: 16
+                    }
                 }
             },
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Win Rate Over Time'
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#FFFFFF'
+                    }
+                },
+                y: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#FFFFFF'
+                    }
                 }
             }
         }
@@ -38,31 +62,4 @@ async function generateWinRateChart(data) {
     return await chartGenerator.renderToBuffer(config);
 }
 
-async function generateProfitChart(data) {
-    const config = {
-        type: 'line',
-        data: {
-            labels: data.labels,
-            datasets: [{
-                label: 'Profit/Loss ($)',
-                data: data.profits,
-                fill: true,
-                borderColor: '#0000ff',
-                backgroundColor: 'rgba(0, 0, 255, 0.1)',
-                tension: 0.1
-            }]
-        },
-        options: {
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Profit/Loss Over Time'
-                }
-            }
-        }
-    };
-
-    return await chartGenerator.renderToBuffer(config);
-}
-
-module.exports = { generateWinRateChart, generateProfitChart }; 
+module.exports = { generateUnitsChart }; 
