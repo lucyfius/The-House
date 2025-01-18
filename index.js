@@ -117,18 +117,20 @@ client.on('messageReactionAdd', async (reaction, user) => {
     try {
         const reactionRole = await ReactionRole.findOne({
             where: {
-                messageId: reaction.message.id,
-                emoji: reaction.emoji.toString()
+                messageId: reaction.message.id
             }
         });
 
         if (reactionRole) {
-            const guild = reaction.message.guild;
-            const member = await guild.members.fetch(user.id);
-            const role = await guild.roles.fetch(reactionRole.roleId);
+            const pair = reactionRole.emojiRolePairs.find(p => p.emoji === reaction.emoji.toString());
+            if (pair) {
+                const guild = reaction.message.guild;
+                const member = await guild.members.fetch(user.id);
+                const role = await guild.roles.fetch(pair.roleId);
 
-            if (role) {
-                await member.roles.add(role);
+                if (role) {
+                    await member.roles.add(role);
+                }
             }
         }
     } catch (error) {
@@ -142,18 +144,20 @@ client.on('messageReactionRemove', async (reaction, user) => {
     try {
         const reactionRole = await ReactionRole.findOne({
             where: {
-                messageId: reaction.message.id,
-                emoji: reaction.emoji.toString()
+                messageId: reaction.message.id
             }
         });
 
         if (reactionRole) {
-            const guild = reaction.message.guild;
-            const member = await guild.members.fetch(user.id);
-            const role = await guild.roles.fetch(reactionRole.roleId);
+            const pair = reactionRole.emojiRolePairs.find(p => p.emoji === reaction.emoji.toString());
+            if (pair) {
+                const guild = reaction.message.guild;
+                const member = await guild.members.fetch(user.id);
+                const role = await guild.roles.fetch(pair.roleId);
 
-            if (role) {
-                await member.roles.remove(role);
+                if (role) {
+                    await member.roles.remove(role);
+                }
             }
         }
     } catch (error) {
