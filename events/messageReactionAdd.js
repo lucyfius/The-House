@@ -29,11 +29,10 @@ module.exports = {
             if (!reactionRole) return;
 
             // Find matching emoji-role pair
-            const emojiIdentifier = reaction.emoji.id ? reaction.emoji.name : reaction.emoji.toString();
+            const emojiIdentifier = reaction.emoji.id || reaction.emoji.name;
             const pair = reactionRole.emojiRolePairs.find(p => 
                 p.emoji === emojiIdentifier || 
-                p.emoji === reaction.emoji.name || 
-                p.emoji === reaction.emoji.toString()
+                p.emojiString === reaction.emoji.toString()
             );
             if (!pair) return;
 

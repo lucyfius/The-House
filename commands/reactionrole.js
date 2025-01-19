@@ -12,7 +12,7 @@ module.exports = {
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('pairs')
-                .setDescription('✨ Format: 👍 @Role1, 🎮 @Role2 (Add space between emoji & role)')
+                .setDescription('✨ Format: :emoji: @Role1, 🎮 @Role2 (Add space between emoji & role)')
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('note')
@@ -44,12 +44,30 @@ module.exports = {
             const rawPairs = pairsString.split(',').map(p => p.trim());
 
             for (const pair of rawPairs) {
-                const [emoji, roleId] = pair.split(/\s+/);
-                if (!emoji || !roleId) {
+                const [emojiInput, roleId] = pair.split(/\s+/);
+                if (!emojiInput || !roleId) {
                     return interaction.reply({
-                        content: `❌ Invalid format in pair: "${pair}"\nFormat should be: 👍 @Role`,
+                        content: `❌ Invalid format in pair: "${pair}"\nFormat should be: :emoji: @Role`,
                         ephemeral: true
                     });
+                }
+
+                // Handle Discord emoji format
+                let emoji;
+                if (emojiInput.startsWith(':') && emojiInput.endsWith(':')) {
+                    // Get emoji from guild or client
+                    const emojiName = emojiInput.slice(1, -1); // Remove colons
+                    emoji = interaction.client.emojis.cache.find(e => e.name === emojiName) ||
+                           interaction.guild.emojis.cache.find(e => e.name === emojiName);
+                    
+                    if (!emoji) {
+                        return interaction.reply({
+                            content: `❌ Emoji "${emojiName}" not found. Make sure the bot has access to this emoji.`,
+                            ephemeral: true
+                        });
+                    }
+                } else {
+                    emoji = emojiInput;
                 }
 
                 const cleanRoleId = roleId.replace(/[<@&>]/g, '');
@@ -57,16 +75,15 @@ module.exports = {
 
                 if (!role) {
                     return interaction.reply({
-                        content: `❌ Role not found for emoji ${emoji}`,
+                        content: `❌ Role not found for emoji ${emojiInput}`,
                         ephemeral: true
                     });
                 }
 
-                // Store the emoji identifier for better matching
-                const emojiIdentifier = emoji.includes(':') ? emoji.split(':')[1] : emoji;
-
+                // Store both the emoji ID/name and the full emoji for reactions
                 pairs.push({
-                    emoji: emojiIdentifier,
+                    emoji: emoji.id || emoji,
+                    emojiString: emoji.toString(),
                     roleId: role.id
                 });
 
@@ -76,7 +93,7 @@ module.exports = {
                 } catch (error) {
                     console.error('Error adding reaction:', error);
                     return interaction.reply({
-                        content: `❌ Failed to add reaction ${emoji}. Make sure it's a valid emoji or that the bot has access to it.`,
+                        content: `❌ Failed to add reaction ${emojiInput}. Make sure it's a valid emoji or that the bot has access to it.`,
                         ephemeral: true
                     });
                 }
@@ -104,7 +121,7 @@ module.exports = {
                 .setDescription(`Successfully set up ${pairs.length} reaction role${pairs.length > 1 ? 's' : ''} for [this message](${message.url})`)
                 .addFields(
                     pairs.map(pair => ({
-                        name: `${pair.emoji} Role`,
+                        name: `${pair.emojiString} Role`,
                         value: `<@&${pair.roleId}>`,
                         inline: true
                     }))
