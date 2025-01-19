@@ -25,7 +25,12 @@ module.exports = {
 
             if (!reactionRole) return;
 
-            const pair = reactionRole.emojiRolePairs.find(p => p.emoji === reaction.emoji.name);
+            const pair = reactionRole.emojiRolePairs.find(p => 
+                p.emoji === `:${reaction.emoji.name}:` || 
+                p.emojiString === `:${reaction.emoji.name}:` ||
+                p.emoji === reaction.emoji.name ||
+                p.emoji.replace(/:/g, '') === reaction.emoji.name
+            );
             if (!pair) return;
 
             const member = await reaction.message.guild.members.fetch(user.id);

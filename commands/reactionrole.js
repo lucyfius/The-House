@@ -34,7 +34,7 @@ module.exports = {
             const message = await interaction.channel.messages.fetch(messageId);
             if (!message) {
                 return interaction.reply({
-                    content: '❌ Message not found! Make sure you\'re using this command in the same channel as the message.',
+                    content: '❌ Message not found! Make sure:\n1. You\'re using this command in the same channel as the message\n2. The message ID is correct\n3. The message hasn\'t been deleted',
                     ephemeral: true
                 });
             }
@@ -52,26 +52,31 @@ module.exports = {
                     });
                 }
 
+                console.log('Debug - Raw roleId:', roleId); // Debug log
+
+                const cleanRoleId = roleId.replace(/[<@&>]/g, '');
+                console.log('Debug - Cleaned roleId:', cleanRoleId); // Debug log
+
+                const role = await interaction.guild.roles.fetch(cleanRoleId);
+                console.log('Debug - Found role:', role?.name || 'No role found'); // Debug log
+
+                if (!role) {
+                    return interaction.reply({
+                        content: `❌ Role not found! Make sure you're @mentioning the role properly.\n\nReceived: ${roleId}\nCleaned ID: ${cleanRoleId}`,
+                        ephemeral: true
+                    });
+                }
+
                 // Store the emoji code directly
                 const emoji = {
                     name: emojiInput.replace(/:/g, ''), // Remove colons
                     toString: () => emojiInput
                 };
 
-                const cleanRoleId = roleId.replace(/[<@&>]/g, '');
-                const role = await interaction.guild.roles.fetch(cleanRoleId);
-
-                if (!role) {
-                    return interaction.reply({
-                        content: `❌ Role not found for emoji ${emojiInput}`,
-                        ephemeral: true
-                    });
-                }
-
                 // Store emoji information with the original code
                 pairs.push({
-                    emoji: emojiInput,  // Store the full emoji code
-                    emojiString: emojiInput,
+                    emoji: emoji.name,  // Store without colons
+                    emojiString: emojiInput, // Store with colons
                     roleId: role.id
                 });
 

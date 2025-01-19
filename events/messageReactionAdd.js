@@ -30,9 +30,17 @@ module.exports = {
 
             // Find matching emoji-role pair
             const emojiCode = `:${reaction.emoji.name}:`;
+            console.log('Debug - Reaction emoji:', {
+                name: reaction.emoji.name,
+                emojiCode: emojiCode,
+                stored: reactionRole.emojiRolePairs
+            });
+            
             const pair = reactionRole.emojiRolePairs.find(p => 
                 p.emoji === emojiCode || 
-                p.emojiString === emojiCode
+                p.emojiString === emojiCode ||
+                p.emoji === reaction.emoji.name ||
+                p.emoji.replace(/:/g, '') === reaction.emoji.name
             );
             if (!pair) return;
 
