@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const { isAdmin } = require('../utils/permissions');
 const Raffle = require('../models/Raffle');
+const { client } = require('../index.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -92,9 +93,14 @@ module.exports = {
                     });
                 }
 
-                await interaction.deferReply();
-                await endRaffle(activeRaffle.messageId);
-                await interaction.editReply('🏁 Raffle ended early by admin!');
+                try {
+                    await interaction.deferReply();
+                    await endRaffle(activeRaffle.messageId);
+                    await interaction.editReply('🏁 Raffle ended early by admin!');
+                } catch (error) {
+                    console.error('Error ending raffle:', error);
+                    await interaction.editReply('❌ Failed to end raffle. Please try again.');
+                }
                 break;
             }
 
@@ -192,7 +198,9 @@ This raffle has been cancelled by an administrator.
                     hostId: interaction.user.id,
                     prize,
                     winnerCount,
-                    endTime
+                    endTime,
+                    entries: [],
+                    status: 'ACTIVE'
                 });
 
                 await interaction.reply({
@@ -413,43 +421,55 @@ async function endRaffle(messageId) {
         where: { messageId, status: 'ACTIVE' }
     });
 
-    if (!raffle) return;
+    if (!raffle || !raffle.entries || raffle.entries.length === 0) {
+        throw new Error('No valid raffle or entries found');
+    }
 
-    // Select winners based on lucky numbers
-    const winners = [];
-    const winningNumber = Math.floor(Math.random() * 100) + 1;
-    
-    // Sort entries by how close they are to the winning number
-    const sortedEntries = raffle.entries.sort((a, b) => {
-        const aDiff = Math.abs(a.number - winningNumber);
-        const bDiff = Math.abs(b.number - winningNumber);
-        return aDiff - bDiff;
-    });
+    try {
+        // Select winners based on lucky numbers
+        const winningNumber = Math.floor(Math.random() * 100) + 1;
+        
+        // Sort entries by how close they are to the winning number
+        const sortedEntries = [...raffle.entries].sort((a, b) => {
+            const aDiff = Math.abs(a.number - winningNumber);
+            const bDiff = Math.abs(b.number - winningNumber);
+            return aDiff - bDiff;
+        });
 
-    winners.push(...sortedEntries.slice(0, raffle.winnerCount));
+        // Get winners (limited by winnerCount)
+        const winners = sortedEntries.slice(0, raffle.winnerCount).map(entry => ({
+            userId: entry.userId,
+            number: entry.number
+        }));
 
-    // Update raffle status
-    raffle.status = 'BETTING';
-    raffle.winners = winners;
-    await raffle.save();
+        // Update raffle status
+        raffle.status = 'BETTING';
+        raffle.winners = winners;
+        await raffle.save();
 
-    // Send winner announcement
-    const channel = await client.channels.fetch(raffle.channelId);
-    const winnerEmbed = new EmbedBuilder()
-        .setTitle('🎉 Raffle Winners!')
-        .setColor('#FFD700')
-        .setDescription(`
+        // Send winner announcement
+        const channel = await client.channels.fetch(raffle.channelId);
+        if (!channel) throw new Error('Channel not found');
+
+        const winnerEmbed = new EmbedBuilder()
+            .setTitle('🎉 Raffle Winners!')
+            .setColor('#FFD700')
+            .setDescription(`
 **Winning Number:** ${winningNumber}
 
-${winners.map((w, i) => `${i + 1}. ${w.user.tag} (picked ${w.number})`).join('\n')}
+${winners.map((w, i) => `${i + 1}. <@${w.userId}> (picked ${w.number})`).join('\n')}
 
 **Prize:** ${raffle.prize}
 **Total Entries:** ${raffle.entries.length}
 
 🎲 Winners can now use \`/raffle bet\` to challenge each other!
-        `)
-        .setFooter({ text: 'Congratulations to all winners!' })
-        .setTimestamp();
+            `)
+            .setFooter({ text: 'Congratulations to all winners!' })
+            .setTimestamp();
 
-    await channel.send({ embeds: [winnerEmbed] });
+        await channel.send({ embeds: [winnerEmbed] });
+    } catch (error) {
+        console.error('Error in endRaffle:', error);
+        throw error;
+    }
 } 

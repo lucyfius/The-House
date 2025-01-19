@@ -60,9 +60,24 @@ module.exports = {
                     option.setName('id')
                         .setDescription('🔢 Which bet? (ID number)')
                         .setRequired(true))
+                .addStringOption(option =>
+                    option.setName('result')
+                        .setDescription('✨ Update the result?')
+                        .addChoices(
+                            { name: '✅ Won', value: 'win' },
+                            { name: '❌ Lost', value: 'loss' }
+                        ))
                 .addNumberOption(option =>
                     option.setName('units')
-                        .setDescription('💰 New units amount'))),
+                        .setDescription('💰 New units amount')))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('remove')
+                .setDescription('🗑️ Remove a bet from your history')
+                .addIntegerOption(option =>
+                    option.setName('id')
+                        .setDescription('🔢 Which bet to remove? (ID number)')
+                        .setRequired(true))),
 
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
@@ -152,7 +167,119 @@ module.exports = {
                 break;
             }
 
-            // Fix command remains the same
+            case 'fix': {
+                const betId = interaction.options.getInteger('id');
+                const newResult = interaction.options.getString('result');
+                const newUnits = interaction.options.getNumber('units');
+
+                try {
+                    const bet = await BetStats.findOne({
+                        where: {
+                            id: betId,
+                            userId: interaction.user.id,
+                            guildId: interaction.guild.id
+                        }
+                    });
+
+                    if (!bet) {
+                        return interaction.reply({
+                            content: '❌ Bet not found or you don\'t have permission to edit it.',
+                            ephemeral: true
+                        });
+                    }
+
+                    if (newResult) bet.result = newResult === 'win';
+                    if (newUnits !== null) bet.amount = newUnits;
+                    await bet.save();
+
+                    // Update stats view if exists
+                    const view = await BetStatsView.findOne({
+                        where: {
+                            guildId: interaction.guild.id,
+                            userId: interaction.user.id
+                        }
+                    });
+
+                    if (view) {
+                        try {
+                            const channel = await interaction.client.channels.fetch(view.channelId);
+                            const message = await channel.messages.fetch(view.messageId);
+                            const newEmbed = await generateStatsEmbed(interaction.user.id, interaction.guild.id, view.timeframe);
+                            await message.edit({ embeds: [newEmbed] });
+                        } catch (error) {
+                            console.error('Error updating stats view:', error);
+                            await view.destroy();
+                        }
+                    }
+
+                    await interaction.reply({
+                        content: `✅ Bet #${betId} has been updated!`,
+                        ephemeral: true
+                    });
+                } catch (error) {
+                    console.error('Error fixing bet:', error);
+                    await interaction.reply({
+                        content: '❌ Failed to update bet.',
+                        ephemeral: true
+                    });
+                }
+                break;
+            }
+
+            case 'remove': {
+                const betId = interaction.options.getInteger('id');
+
+                try {
+                    const bet = await BetStats.findOne({
+                        where: {
+                            id: betId,
+                            userId: interaction.user.id,
+                            guildId: interaction.guild.id
+                        }
+                    });
+
+                    if (!bet) {
+                        return interaction.reply({
+                            content: '❌ Bet not found or you don\'t have permission to remove it.',
+                            ephemeral: true
+                        });
+                    }
+
+                    await bet.destroy();
+
+                    // Update stats view if exists
+                    const view = await BetStatsView.findOne({
+                        where: {
+                            guildId: interaction.guild.id,
+                            userId: interaction.user.id
+                        }
+                    });
+
+                    if (view) {
+                        try {
+                            const channel = await interaction.client.channels.fetch(view.channelId);
+                            const message = await channel.messages.fetch(view.messageId);
+                            const newEmbed = await generateStatsEmbed(interaction.user.id, interaction.guild.id, view.timeframe);
+                            await message.edit({ embeds: [newEmbed] });
+                        } catch (error) {
+                            console.error('Error updating stats view:', error);
+                            await view.destroy();
+                        }
+                    }
+
+                    await interaction.reply({
+                        content: `✅ Bet #${betId} has been removed!`,
+                        ephemeral: true
+                    });
+                } catch (error) {
+                    console.error('Error removing bet:', error);
+                    await interaction.reply({
+                        content: '❌ Failed to remove bet.',
+                        ephemeral: true
+                    });
+                }
+                break;
+            }
         }
     }
 }; 
