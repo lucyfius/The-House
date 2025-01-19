@@ -58,14 +58,26 @@ module.exports = {
                 console.log('Debug - Split pair:', { emojiInput, roleId });
 
                 if (!emojiInput || !roleId) {
+                    console.log('Debug - Invalid format detected:', { emojiInput, roleId });
                     await interaction.reply({
-                        content: `❌ Invalid format in pair: "${pair}"\nFormat should be: :white_check_mark: @Role (make sure there's a space between the emoji and role)`,
+                        content: `❌ Invalid format in pair: "${pair}"\nExample format: \`:white_check_mark: @Role\`\n\nMake sure:\n1. The emoji has colons (:emoji:)\n2. There's a space between emoji and role\n3. The role is @mentioned`,
                         flags: ['Ephemeral']
                     });
                     return;
                 }
 
-                console.log('Debug - Raw roleId:', roleId); // Debug log
+                // Add emoji validation
+                if (!emojiInput.startsWith(':') || !emojiInput.endsWith(':')) {
+                    console.log('Debug - Invalid emoji format:', emojiInput);
+                    await interaction.reply({
+                        content: `❌ Invalid emoji format: "${emojiInput}"\nMake sure to include colons, like: :white_check_mark:`,
+                        flags: ['Ephemeral']
+                    });
+                    return;
+                }
+
+                console.log('Debug - Raw roleId:', roleId);
+                console.log('Debug - Role mention format:', roleId.match(/<@&\d+>/));
 
                 const cleanRoleId = roleId.replace(/[<@&>]/g, '');
                 console.log('Debug - Cleaned roleId:', cleanRoleId); // Debug log
