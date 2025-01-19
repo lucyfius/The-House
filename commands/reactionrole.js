@@ -67,10 +67,18 @@ module.exports = {
                 }
 
                 // Add emoji validation
-                if (!emojiInput.startsWith(':') || !emojiInput.endsWith(':')) {
+                let finalEmoji = emojiInput;
+                let unicodeEmoji = emojiInput;
+
+                // If it's a Unicode emoji, convert it to the code format
+                if (emojiInput === '✅') {
+                    finalEmoji = ':white_check_mark:';
+                } else if (emojiInput === '❌') {
+                    finalEmoji = ':x:';
+                } else if (!emojiInput.startsWith(':') || !emojiInput.endsWith(':')) {
                     console.log('Debug - Invalid emoji format:', emojiInput);
                     await interaction.reply({
-                        content: `❌ Invalid emoji format: "${emojiInput}"\nMake sure to include colons, like: :white_check_mark:`,
+                        content: `❌ Invalid emoji format: "${emojiInput}"\nUse either:\n1. Unicode emoji (✅)\n2. Emoji code (:white_check_mark:)`,
                         flags: ['Ephemeral']
                     });
                     return;
@@ -95,26 +103,28 @@ module.exports = {
 
                 // Store the emoji code directly
                 const emoji = {
-                    name: emojiInput.replace(/:/g, ''), // Remove colons for internal use
-                    toString: () => emojiInput
+                    name: finalEmoji.replace(/:/g, ''), // Remove colons for internal use
+                    toString: () => finalEmoji
                 };
 
                 // Store emoji information with the original code
                 pairs.push({
-                    emoji: emojiInput,  // Store with colons (e.g., :white_check_mark:)
-                    emojiString: emojiInput,
+                    emoji: finalEmoji,  // Store with colons (e.g., :white_check_mark:)
+                    emojiString: finalEmoji,
                     roleId: role.id
                 });
 
                 // Add reaction to message using the Unicode emoji
                 try {
-                    const unicodeEmoji = {
+                    const emojiMap = {
                         'white_check_mark': '✅',
                         'x': '❌',
                         // Add more mappings as needed
-                    }[emoji.name] || emoji.name;
-
-                    await message.react(unicodeEmoji);
+                    };
+                    
+                    // If it's already a Unicode emoji, use it directly
+                    const reactionEmoji = emojiMap[emoji.name] || unicodeEmoji;
+                    await message.react(reactionEmoji);
                 } catch (error) {
                     console.error('Error adding reaction:', error);
                     await interaction.reply({
