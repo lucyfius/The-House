@@ -47,28 +47,16 @@ module.exports = {
                 const [emojiInput, roleId] = pair.split(/\s+/);
                 if (!emojiInput || !roleId) {
                     return interaction.reply({
-                        content: `❌ Invalid format in pair: "${pair}"\nFormat should be: :emoji: @Role`,
+                        content: `❌ Invalid format in pair: "${pair}"\nFormat should be: :white_check_mark: @Role`,
                         ephemeral: true
                     });
                 }
 
-                // Handle Discord emoji format
-                let emoji;
-                if (emojiInput.startsWith(':') && emojiInput.endsWith(':')) {
-                    // Get emoji from guild or client
-                    const emojiName = emojiInput.slice(1, -1); // Remove colons
-                    emoji = interaction.client.emojis.cache.find(e => e.name === emojiName) ||
-                           interaction.guild.emojis.cache.find(e => e.name === emojiName);
-                    
-                    if (!emoji) {
-                        return interaction.reply({
-                            content: `❌ Emoji "${emojiName}" not found. Make sure the bot has access to this emoji.`,
-                            ephemeral: true
-                        });
-                    }
-                } else {
-                    emoji = emojiInput;
-                }
+                // Store the emoji code directly
+                const emoji = {
+                    name: emojiInput.replace(/:/g, ''), // Remove colons
+                    toString: () => emojiInput
+                };
 
                 const cleanRoleId = roleId.replace(/[<@&>]/g, '');
                 const role = await interaction.guild.roles.fetch(cleanRoleId);
@@ -80,20 +68,26 @@ module.exports = {
                     });
                 }
 
-                // Store both the emoji ID/name and the full emoji for reactions
+                // Store emoji information with the original code
                 pairs.push({
-                    emoji: emoji.id || emoji,
-                    emojiString: emoji.toString(),
+                    emoji: emojiInput,  // Store the full emoji code
+                    emojiString: emojiInput,
                     roleId: role.id
                 });
 
-                // Add reaction to message
+                // Add reaction to message using the Unicode emoji
                 try {
-                    await message.react(emoji);
+                    const unicodeEmoji = {
+                        'white_check_mark': '✅',
+                        'x': '❌',
+                        // Add more mappings as needed
+                    }[emoji.name] || emoji.name;
+
+                    await message.react(unicodeEmoji);
                 } catch (error) {
                     console.error('Error adding reaction:', error);
                     return interaction.reply({
-                        content: `❌ Failed to add reaction ${emojiInput}. Make sure it's a valid emoji or that the bot has access to it.`,
+                        content: `❌ Failed to add reaction ${emojiInput}. Make sure it's a valid emoji code.`,
                         ephemeral: true
                     });
                 }
@@ -138,7 +132,7 @@ module.exports = {
         } catch (error) {
             console.error('Error creating reaction roles:', error);
             await interaction.reply({
-                content: '❌ Failed to set up reaction roles. Make sure:\n1. The message ID is correct\n2. The emojis are valid\n3. The roles are properly mentioned\n4. The bot has permission to manage roles',
+                content: '❌ Try using the actual emoji (✅) instead of :white_check_mark:',
                 ephemeral: true
             });
         }
