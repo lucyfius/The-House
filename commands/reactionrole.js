@@ -16,8 +16,7 @@ module.exports = {
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('note')
-                .setDescription('📝 Optional: Add instructions for users (e.g., "React to get roles!")'))
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+                .setDescription('📝 Optional: Add instructions for users (e.g., "React to get roles!")')),
 
     async execute(interaction) {
         if (!isAdmin(interaction.member)) {
@@ -63,15 +62,35 @@ module.exports = {
                     });
                 }
 
+                // Store the emoji identifier for better matching
+                const emojiIdentifier = emoji.includes(':') ? emoji.split(':')[1] : emoji;
+
                 pairs.push({
-                    emoji: emoji,
+                    emoji: emojiIdentifier,
                     roleId: role.id
                 });
 
                 // Add reaction to message
-                await message.react(emoji);
+                try {
+                    await message.react(emoji);
+                } catch (error) {
+                    console.error('Error adding reaction:', error);
+                    return interaction.reply({
+                        content: `❌ Failed to add reaction ${emoji}. Make sure it's a valid emoji or that the bot has access to it.`,
+                        ephemeral: true
+                    });
+                }
             }
 
+            // Delete any existing reaction role setup for this message
+            await ReactionRole.destroy({
+                where: {
+                    messageId: messageId,
+                    guildId: interaction.guild.id
+                }
+            });
+
+            // Create new reaction role setup
             await ReactionRole.create({
                 guildId: interaction.guild.id,
                 messageId: messageId,
@@ -79,11 +98,10 @@ module.exports = {
                 emojiRolePairs: pairs
             });
 
-            // Create a nice embed showing the setup
             const embed = new EmbedBuilder()
                 .setTitle('✅ Reaction Roles Setup Complete')
                 .setColor('#00ff00')
-                .setDescription(`Successfully set up ${pairs.length} reaction roles for [this message](${message.url})`)
+                .setDescription(`Successfully set up ${pairs.length} reaction role${pairs.length > 1 ? 's' : ''} for [this message](${message.url})`)
                 .addFields(
                     pairs.map(pair => ({
                         name: `${pair.emoji} Role`,
