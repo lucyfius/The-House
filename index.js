@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Collection, REST, Routes, ActivityType } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes, ActivityType, Partials } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
@@ -15,7 +15,12 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildMessageReactions,
         GatewayIntentBits.GuildEmojisAndStickers
-    ]
+    ],
+    partials: [
+        Partials.Message,
+        Partials.Channel,
+        Partials.Reaction,
+    ],
 });
 
 client.commands = new Collection();

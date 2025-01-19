@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const { isAdmin } = require('../utils/permissions');
+const { checkRateLimit, checkRaidPrevention } = require('../utils/rateLimiter');
 const Raffle = require('../models/Raffle');
 const { client } = require('../index.js');
 
@@ -68,6 +69,17 @@ module.exports = {
 
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
+
+        // Rate limit check for all commands except admin commands
+        if (!['end', 'cancel', 'start'].includes(subcommand)) {
+            const rateLimit = checkRateLimit(interaction.user.id, `raffle-${subcommand}`);
+            if (rateLimit.limited) {
+                return interaction.reply({
+                    content: `⏰ Please wait ${rateLimit.timeLeft} seconds before using this command again.`,
+                    ephemeral: true
+                });
+            }
+        }
 
         // Check for active raffle
         const activeRaffle = await Raffle.findOne({
@@ -214,6 +226,14 @@ This raffle has been cancelled by an administrator.
             }
 
             case 'join': {
+                // Add raid prevention for join command
+                if (checkRaidPrevention(interaction.guild.id, interaction.user.id)) {
+                    return interaction.reply({
+                        content: '🛡️ You are joining raffles too quickly. Please wait a minute before trying again.',
+                        ephemeral: true
+                    });
+                }
+
                 if (!activeRaffle) {
                     return interaction.reply({
                         content: '❌ There is no active raffle to join! Wait for one to start.',
@@ -246,6 +266,15 @@ This raffle has been cancelled by an administrator.
             }
 
             case 'bet': {
+                // Add longer cooldown for betting
+                const betRateLimit = checkRateLimit(interaction.user.id, 'raffle-bet', 30);
+                if (betRateLimit.limited) {
+                    return interaction.reply({
+                        content: `⏰ Please wait ${betRateLimit.timeLeft} seconds between placing bets.`,
+                        ephemeral: true
+                    });
+                }
+
                 const raffle = await Raffle.findOne({
                     where: {
                         guildId: interaction.guild.id,

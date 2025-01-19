@@ -10,31 +10,37 @@ module.exports = {
             .setTitle('🚀 Bot Updates')
             .setColor('#00FF00')
             .setDescription(`
-**Latest Updates (v1.0.0)**
+**Latest Updates (v1.1.0)**
 
-🎰 **New Raffle System**
-• Start fun raffles with prizes
-• Pick lucky numbers to win
-• Multiple winners support
-• Auto-end timer system
+🎭 **Role Management**
+• Reaction roles system
+• Auto-role assignment
+• Role removal on unreact
+• Multiple roles per message
 
-🎲 **Betting Features**
-• Winners can challenge each other
-• Track your betting history
-• Multiple bet types supported
-• Auto-updating stats display
-
-📊 **Statistics System**
-• View your betting performance
-• Filter by time periods
-• Track win/loss ratios
-• Detailed bet history
-
-🔧 **Technical Improvements**
-• Enhanced performance
+🎰 **Enhanced Raffle System**
+• Anti-spam protection
+• Rate limiting
+• Raid prevention
 • Better error handling
-• Improved user feedback
-• Automatic cleanup systems
+
+🎲 **Improved Betting**
+• Automatic bet expiration
+• Challenge system
+• Winner verification
+• Unit tracking
+
+🔧 **Technical Updates**
+• Performance optimizations
+• Better error handling
+• Improved stability
+• Memory usage optimizations
+
+📊 **Admin Features**
+• Enhanced logging
+• Better command feedback
+• Improved permissions
+• Server management tools
 
 📅 Last Updated: ${new Date().toLocaleDateString()}
             `)
