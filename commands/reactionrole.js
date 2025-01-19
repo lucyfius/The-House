@@ -69,14 +69,14 @@ module.exports = {
 
                 // Store the emoji code directly
                 const emoji = {
-                    name: emojiInput.replace(/:/g, ''), // Remove colons
+                    name: emojiInput.replace(/:/g, ''), // Remove colons for internal use
                     toString: () => emojiInput
                 };
 
                 // Store emoji information with the original code
                 pairs.push({
-                    emoji: emoji.name,  // Store without colons
-                    emojiString: emojiInput, // Store with colons
+                    emoji: emojiInput,  // Store with colons (e.g., :white_check_mark:)
+                    emojiString: emojiInput,
                     roleId: role.id
                 });
 
@@ -92,7 +92,7 @@ module.exports = {
                 } catch (error) {
                     console.error('Error adding reaction:', error);
                     return interaction.reply({
-                        content: `❌ Failed to add reaction ${emojiInput}. Make sure it's a valid emoji code.`,
+                        content: `❌ Failed to add reaction. Make sure you're using a valid emoji code like :white_check_mark:`,
                         ephemeral: true
                     });
                 }
@@ -137,7 +137,7 @@ module.exports = {
         } catch (error) {
             console.error('Error creating reaction roles:', error);
             await interaction.reply({
-                content: '❌ Try using the actual emoji (✅) instead of :white_check_mark:',
+                content: '❌ Error setting up reaction roles. Make sure you\'re using the format: `/reactionrole messageid:123 pairs::white_check_mark: @Role`',
                 ephemeral: true
             });
         }
