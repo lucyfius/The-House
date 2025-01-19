@@ -33,8 +33,7 @@ module.exports = {
 
         try {
             await interaction.guild.members.ban(target, { 
-                deleteMessageDays: days,
-                reason: reason 
+                deleteMessageSeconds: 7 * 24 * 60 * 60 // 7 days in seconds
             });
             
             await interaction.client.logger.logModAction(interaction, 'Member Banned', target, reason, { deleteDays: days });

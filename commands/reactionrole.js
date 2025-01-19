@@ -20,10 +20,11 @@ module.exports = {
 
     async execute(interaction) {
         if (!isAdmin(interaction.member)) {
-            return interaction.reply({
+            await interaction.reply({
                 content: 'You need Administrator permissions to use this command.',
-                ephemeral: true
+                flags: ['Ephemeral']
             });
+            return;
         }
 
         const messageId = interaction.options.getString('messageid');
@@ -31,25 +32,37 @@ module.exports = {
         const note = interaction.options.getString('note');
 
         try {
+            console.log('Debug - Starting command execution');
+            console.log('Debug - Message ID:', messageId);
+            console.log('Debug - Pairs String:', pairsString);
+            
             const message = await interaction.channel.messages.fetch(messageId);
+            console.log('Debug - Message found:', !!message);
+
             if (!message) {
-                return interaction.reply({
+                await interaction.reply({
                     content: '❌ Message not found! Make sure:\n1. You\'re using this command in the same channel as the message\n2. The message ID is correct\n3. The message hasn\'t been deleted',
-                    ephemeral: true
+                    flags: ['Ephemeral']
                 });
+                return;
             }
 
             // Parse emoji-role pairs with better error handling
             const pairs = [];
             const rawPairs = pairsString.split(',').map(p => p.trim());
+            console.log('Debug - Raw pairs:', rawPairs);
 
             for (const pair of rawPairs) {
+                console.log('Debug - Processing pair:', pair);
                 const [emojiInput, roleId] = pair.split(/\s+/);
+                console.log('Debug - Split pair:', { emojiInput, roleId });
+
                 if (!emojiInput || !roleId) {
-                    return interaction.reply({
-                        content: `❌ Invalid format in pair: "${pair}"\nFormat should be: :white_check_mark: @Role`,
-                        ephemeral: true
+                    await interaction.reply({
+                        content: `❌ Invalid format in pair: "${pair}"\nFormat should be: :white_check_mark: @Role (make sure there's a space between the emoji and role)`,
+                        flags: ['Ephemeral']
                     });
+                    return;
                 }
 
                 console.log('Debug - Raw roleId:', roleId); // Debug log
@@ -61,10 +74,11 @@ module.exports = {
                 console.log('Debug - Found role:', role?.name || 'No role found'); // Debug log
 
                 if (!role) {
-                    return interaction.reply({
+                    await interaction.reply({
                         content: `❌ Role not found! Make sure you're @mentioning the role properly.\n\nReceived: ${roleId}\nCleaned ID: ${cleanRoleId}`,
-                        ephemeral: true
+                        flags: ['Ephemeral']
                     });
+                    return;
                 }
 
                 // Store the emoji code directly
@@ -91,10 +105,11 @@ module.exports = {
                     await message.react(unicodeEmoji);
                 } catch (error) {
                     console.error('Error adding reaction:', error);
-                    return interaction.reply({
+                    await interaction.reply({
                         content: `❌ Failed to add reaction. Make sure you're using a valid emoji code like :white_check_mark:`,
-                        ephemeral: true
+                        flags: ['Ephemeral']
                     });
+                    return;
                 }
             }
 
@@ -132,13 +147,13 @@ module.exports = {
 
             await interaction.reply({
                 embeds: [embed],
-                ephemeral: true
+                flags: ['Ephemeral']
             });
         } catch (error) {
             console.error('Error creating reaction roles:', error);
             await interaction.reply({
                 content: '❌ Error setting up reaction roles. Make sure you\'re using the format: `/reactionrole messageid:123 pairs::white_check_mark: @Role`',
-                ephemeral: true
+                flags: ['Ephemeral']
             });
         }
     }

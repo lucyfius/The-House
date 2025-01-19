@@ -105,15 +105,18 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.on('messageDelete', async message => {
-    await client.logger.logMessageDelete(message);
+    // await client.logger.logMessageDelete(message);
+    console.log('Message deleted:', message.id);
 });
 
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
-    await client.logger.logMemberUpdate(oldMember, newMember);
+    // await client.logger.logMemberUpdate(oldMember, newMember);
+    console.log('Member updated:', newMember.id);
 });
 
 client.on('userUpdate', async (oldUser, newUser) => {
-    await client.logger.logUserUpdate(oldUser, newUser);
+    // await client.logger.logUserUpdate(oldUser, newUser);
+    console.log('User updated:', newUser.id);
 });
 
 client.on('messageReactionAdd', async (reaction, user) => {
