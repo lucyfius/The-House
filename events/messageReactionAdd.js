@@ -4,8 +4,12 @@ const ReactionRole = require('../models/ReactionRole');
 module.exports = {
     name: Events.MessageReactionAdd,
     async execute(reaction, user) {
-        // Don't respond to bot reactions
-        if (user.bot) return;
+        console.log('Debug - Reaction Add Event Triggered');
+        
+        if (user.bot) {
+            console.log('Debug - Ignoring bot reaction');
+            return;
+        }
 
         // Partial reaction handling
         if (reaction.partial) {
@@ -21,7 +25,8 @@ module.exports = {
             console.log('Debug - Processing reaction add:', {
                 emoji: reaction.emoji.name,
                 messageId: reaction.message.id,
-                userId: user.id
+                userId: user.id,
+                guildId: reaction.message.guild.id
             });
 
             // Find reaction role setup for this message
@@ -31,6 +36,8 @@ module.exports = {
                     guildId: reaction.message.guild.id
                 }
             });
+
+            console.log('Debug - Database query result:', reactionRole);
 
             if (!reactionRole) {
                 console.log('Debug - No reaction role setup found for this message');

@@ -19,23 +19,35 @@ const client = new Client({
     partials: [
         Partials.Message,
         Partials.Channel,
-        Partials.Reaction,
-    ],
+        Partials.Reaction
+    ]
 });
 
+// Load commands
 client.commands = new Collection();
-
-// Command Handler
-const commands = [];
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const command = require(filePath);
-    console.log(`Loading command: ${command.data.name}`);
-    client.commands.set(command.data.name, command);
-    commands.push(command.data.toJSON());
+    if ('data' in command && 'execute' in command) {
+        client.commands.set(command.data.name, command);
+    }
+}
+
+// Load events
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+
+for (const file of eventFiles) {
+    const filePath = path.join(eventsPath, file);
+    const event = require(filePath);
+    if (event.once) {
+        client.once(event.name, (...args) => event.execute(...args));
+    } else {
+        client.on(event.name, (...args) => event.execute(...args));
+    }
 }
 
 // Deploy commands
@@ -117,69 +129,6 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
 client.on('userUpdate', async (oldUser, newUser) => {
     // await client.logger.logUserUpdate(oldUser, newUser);
     console.log('User updated:', newUser.id);
-});
-
-client.on('messageReactionAdd', async (reaction, user) => {
-    if (user.bot) return;
-
-    try {
-        const reactionRole = await ReactionRole.findOne({
-            where: {
-                messageId: reaction.message.id
-            }
-        });
-
-        if (reactionRole) {
-            // Parse the emoji name from the reaction
-            const emojiName = reaction.emoji.name;
-            const emojiString = `:${emojiName}:`;
-
-            // Find matching pair in emojiRolePairs
-            const pair = reactionRole.emojiRolePairs.find(p => 
-                p.emoji === emojiString || p.emoji === reaction.emoji.toString()
-            );
-
-            if (pair) {
-                const guild = reaction.message.guild;
-                const member = await guild.members.fetch(user.id);
-                const role = await guild.roles.fetch(pair.roleId);
-
-                if (role) {
-                    await member.roles.add(role);
-                    console.log(`Added role ${role.name} to user ${user.tag}`);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error adding reaction role:', error);
-    }
-});
-
-client.on('messageReactionRemove', async (reaction, user) => {
-    if (user.bot) return;
-
-    try {
-        const reactionRole = await ReactionRole.findOne({
-            where: {
-                messageId: reaction.message.id
-            }
-        });
-
-        if (reactionRole) {
-            const pair = reactionRole.emojiRolePairs.find(p => p.emoji === reaction.emoji.toString());
-            if (pair) {
-                const guild = reaction.message.guild;
-                const member = await guild.members.fetch(user.id);
-                const role = await guild.roles.fetch(pair.roleId);
-
-                if (role) {
-                    await member.roles.remove(role);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error removing reaction role:', error);
-    }
 });
 
 client.login(process.env.TOKEN); 
