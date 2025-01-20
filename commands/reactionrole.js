@@ -161,7 +161,7 @@ module.exports = {
                     channelId: interaction.channel.id,
                     emoji: pairs[0].emoji,
                     roleId: pairs[0].roleId,
-                    emojiRolePairs: JSON.stringify(pairs)
+                    emojiRolePairs: pairs
                 });
                 console.log('Debug - Successfully created new reaction role');
 

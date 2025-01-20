@@ -130,7 +130,15 @@ client.on('messageReactionAdd', async (reaction, user) => {
         });
 
         if (reactionRole) {
-            const pair = reactionRole.emojiRolePairs.find(p => p.emoji === reaction.emoji.toString());
+            // Parse the emoji name from the reaction
+            const emojiName = reaction.emoji.name;
+            const emojiString = `:${emojiName}:`;
+
+            // Find matching pair in emojiRolePairs
+            const pair = reactionRole.emojiRolePairs.find(p => 
+                p.emoji === emojiString || p.emoji === reaction.emoji.toString()
+            );
+
             if (pair) {
                 const guild = reaction.message.guild;
                 const member = await guild.members.fetch(user.id);
@@ -138,6 +146,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
 
                 if (role) {
                     await member.roles.add(role);
+                    console.log(`Added role ${role.name} to user ${user.tag}`);
                 }
             }
         }
