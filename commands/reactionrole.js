@@ -144,6 +144,22 @@ module.exports = {
 
             // Delete any existing reaction role setup for this message
             try {
+                const existingRoles = await ReactionRole.findAll({
+                    where: {
+                        messageId: messageId,
+                        guildId: interaction.guild.id
+                    }
+                });
+
+                if (existingRoles.length > 0) {
+                    console.log('Debug - Found existing reaction roles:', existingRoles.map(r => r.toJSON()));
+                    await interaction.reply({
+                        content: '❌ This message already has reaction roles configured. Please use `/clearreactionroles` first if you want to reconfigure it.',
+                        ephemeral: true
+                    });
+                    return;
+                }
+
                 console.log('Debug - Deleting existing reaction roles');
                 await ReactionRole.destroy({
                     where: {
