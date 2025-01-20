@@ -37,7 +37,8 @@ module.exports = {
             const pair = reactionRole.emojiRolePairs.find(p => 
                 p.emoji === `:${reaction.emoji.name}:` || 
                 p.emoji === reaction.emoji.name ||
-                p.emoji.replace(/:/g, '') === reaction.emoji.name
+                p.emoji.replace(/:/g, '') === reaction.emoji.name ||
+                p.emoji === 'white_check_mark' && reaction.emoji.name === '✅'
             );
 
             if (!pair) {
