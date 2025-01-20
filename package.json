@@ -42,5 +42,8 @@
     "ws": "^8.18.0",
     "chartjs-node-canvas": "^4.1.6"
   },
+  "devDependencies": {
+    "sequelize-cli": "^6.6.2"
+  },
   "description": "Discord moderation bot for Sweepstakes.wiki"
 }
