@@ -23,8 +23,10 @@ const client = new Client({
     ]
 });
 
-// Load commands
+// Initialize collections
 client.commands = new Collection();
+
+// Load commands
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
@@ -50,85 +52,33 @@ for (const file of eventFiles) {
     }
 }
 
-// Deploy commands
-const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
-
-const clientId = process.env.CLIENT_ID;
-
-initDatabase();
-
-client.logger = new Logger(client);
-
+// Ready event handler
 client.once('ready', async () => {
+    console.log(`Logged in as ${client.user.tag}!`);
+    
     try {
-        console.log('Started refreshing application (/) commands.');
-
-        await rest.put(
-            Routes.applicationCommands(client.user.id),
-            { body: commands },
-        );
-
-        // Set presence with full details
-        client.user.setPresence({
+        // Set bot presence
+        await client.user.setPresence({
             activities: [{
-                name: 'Sugar Rush',
-                type: ActivityType.Playing,
-                state: 'Slot Machine',
-                assets: {
-                    large_image: 'sugarrush',
-                    large_text: 'Sugar Rush Slot'
-                }
+                name: `${client.commands.size} commands`,
+                type: ActivityType.Watching
             }],
             status: 'online'
         });
-
-        // Log any presence update errors
-        client.on('presenceUpdate', (oldPresence, newPresence) => {
-            console.log('Presence Update:', {
-                old: oldPresence?.activities,
-                new: newPresence?.activities
-            });
-        });
-
-        console.log('Successfully reloaded application (/) commands.');
-        console.log(`Logged in as ${client.user.tag}!`);
+        
+        // Initialize database
+        await initDatabase();
+        console.log('Database models synchronized.');
+        
     } catch (error) {
-        console.error('Error setting presence:', error);
-        console.error(error.stack);
+        console.error('Error in ready event:', error);
     }
 });
 
-// Interaction handler
-client.on('interactionCreate', async interaction => {
-    if (!interaction.isChatInputCommand()) return;
+// Remove old event handlers
+client.removeAllListeners('messageDelete');
+client.removeAllListeners('guildMemberUpdate');
+client.removeAllListeners('userUpdate');
 
-    const command = client.commands.get(interaction.commandName);
-    if (!command) return;
-
-    try {
-        await command.execute(interaction);
-    } catch (error) {
-        console.error(error);
-        await interaction.reply({ 
-            content: 'There was an error executing this command!', 
-            ephemeral: true 
-        });
-    }
-});
-
-client.on('messageDelete', async message => {
-    // await client.logger.logMessageDelete(message);
-    console.log('Message deleted:', message.id);
-});
-
-client.on('guildMemberUpdate', async (oldMember, newMember) => {
-    // await client.logger.logMemberUpdate(oldMember, newMember);
-    console.log('Member updated:', newMember.id);
-});
-
-client.on('userUpdate', async (oldUser, newUser) => {
-    // await client.logger.logUserUpdate(oldUser, newUser);
-    console.log('User updated:', newUser.id);
-});
-
+// Login
 client.login(process.env.TOKEN); 
