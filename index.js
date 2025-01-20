@@ -31,11 +31,26 @@ client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
+console.log('Found command files:', commandFiles); // Debug log
+
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
-    const command = require(filePath);
-    if ('data' in command && 'execute' in command) {
-        client.commands.set(command.data.name, command);
+    try {
+        const command = require(filePath);
+        console.log(`Loading command from ${file}:`, {
+            hasData: 'data' in command,
+            hasExecute: 'execute' in command,
+            name: command.data?.name
+        });
+        
+        if ('data' in command && 'execute' in command) {
+            client.commands.set(command.data.name, command);
+            console.log(`Successfully loaded command: ${command.data.name}`);
+        } else {
+            console.log(`Skipping ${file} - missing required properties`);
+        }
+    } catch (error) {
+        console.error(`Error loading command ${file}:`, error);
     }
 }
 
@@ -49,16 +64,17 @@ const rest = new REST().setToken(process.env.TOKEN);
         const commands = [];
         for (const command of client.commands.values()) {
             commands.push(command.data.toJSON());
+            console.log(`Registering command: ${command.data.name}`); // Debug log
         }
 
-        await rest.put(
+        const data = await rest.put(
             Routes.applicationCommands(process.env.CLIENT_ID),
             { body: commands },
         );
 
-        console.log('Successfully reloaded application (/) commands.');
+        console.log(`Successfully reloaded ${data.length} application (/) commands.`);
     } catch (error) {
-        console.error(error);
+        console.error('Error registering commands:', error);
     }
 })();
 
@@ -107,6 +123,40 @@ client.once('ready', async () => {
         );
     } catch (error) {
         console.error('Error in ready event:', error);
+    }
+});
+
+// Handle commands
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isCommand()) {
+        console.log('Ignoring non-command interaction');
+        return;
+    }
+
+    console.log('Received command interaction:', {
+        commandName: interaction.commandName,
+        user: interaction.user.tag,
+        guild: interaction.guild?.name
+    });
+
+    const command = client.commands.get(interaction.commandName);
+    if (!command) {
+        console.log(`Command not found: ${interaction.commandName}`);
+        return;
+    }
+
+    try {
+        console.log(`Executing command: ${interaction.commandName}`);
+        await command.execute(interaction);
+        console.log(`Successfully executed command: ${interaction.commandName}`);
+    } catch (error) {
+        console.error(`Error executing command ${interaction.commandName}:`, error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ 
+                content: 'There was an error executing this command!', 
+                ephemeral: true 
+            });
+        }
     }
 });
 
