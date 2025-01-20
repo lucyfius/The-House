@@ -39,6 +39,29 @@ for (const file of commandFiles) {
     }
 }
 
+// Deploy commands
+const rest = new REST().setToken(process.env.TOKEN);
+
+(async () => {
+    try {
+        console.log('Started refreshing application (/) commands.');
+
+        const commands = [];
+        for (const command of client.commands.values()) {
+            commands.push(command.data.toJSON());
+        }
+
+        await rest.put(
+            Routes.applicationCommands(process.env.CLIENT_ID),
+            { body: commands },
+        );
+
+        console.log('Successfully reloaded application (/) commands.');
+    } catch (error) {
+        console.error(error);
+    }
+})();
+
 // Load events
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
@@ -58,6 +81,15 @@ client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
     
     try {
+        // Set bot presence
+        await client.user.setPresence({
+            activities: [{
+                name: 'Sugar Rush Slot',
+                type: ActivityType.Playing
+            }],
+            status: 'online'
+        });
+        
         // Test database connection
         await sequelize.authenticate();
         console.log('Database connection test successful');
@@ -65,18 +97,14 @@ client.once('ready', async () => {
         // List all reaction roles
         const allRoles = await ReactionRole.findAll();
         console.log('Current reaction roles in database:', 
-            allRoles.map(r => r.toJSON())
+            allRoles.map(r => ({
+                ...r.toJSON(),
+                emojiRolePairs: r.emojiRolePairs.map(p => ({
+                    emoji: p.emoji,
+                    roleId: p.roleId
+                }))
+            }))
         );
-
-        // Set bot presence
-        await client.user.setPresence({
-            activities: [{
-                name: `${client.commands.size} commands`,
-                type: ActivityType.Watching
-            }],
-            status: 'online'
-        });
-        
     } catch (error) {
         console.error('Error in ready event:', error);
     }

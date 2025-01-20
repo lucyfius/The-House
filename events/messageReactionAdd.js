@@ -55,12 +55,21 @@ module.exports = {
             });
 
             // Find matching emoji-role pair
-            const pair = reactionRole.emojiRolePairs.find(p => 
-                p.emoji === `:${reaction.emoji.name}:` || 
-                p.emoji === reaction.emoji.name ||
-                p.emoji.replace(/:/g, '') === reaction.emoji.name ||
-                p.emoji === 'white_check_mark' && reaction.emoji.name === '✅'
-            );
+            const pair = reactionRole.emojiRolePairs.find(p => {
+                console.log('Debug - Comparing emojis:', {
+                    stored: p.emoji,
+                    received: reaction.emoji.name,
+                    isMatch: p.emoji === `:${reaction.emoji.name}:` || 
+                            p.emoji === reaction.emoji.name ||
+                            p.emoji.replace(/:/g, '') === reaction.emoji.name ||
+                            (p.emoji === ':white_check_mark:' && reaction.emoji.name === '✅')
+                });
+                
+                return p.emoji === `:${reaction.emoji.name}:` || 
+                       p.emoji === reaction.emoji.name ||
+                       p.emoji.replace(/:/g, '') === reaction.emoji.name ||
+                       (p.emoji === ':white_check_mark:' && reaction.emoji.name === '✅');
+            });
 
             if (!pair) {
                 console.log('Debug - No matching emoji-role pair found');
