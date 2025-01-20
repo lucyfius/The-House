@@ -164,6 +164,15 @@ module.exports = {
                     emojiRolePairs: pairs
                 });
                 console.log('Debug - Successfully created new reaction role');
+                
+                // Add this debug log
+                const savedRole = await ReactionRole.findOne({
+                    where: {
+                        messageId: messageId,
+                        guildId: interaction.guild.id
+                    }
+                });
+                console.log('Debug - Verified saved reaction role:', savedRole?.toJSON());
 
             } catch (error) {
                 console.error('Database Error:', error);

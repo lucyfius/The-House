@@ -26,7 +26,8 @@ module.exports = {
                 emoji: reaction.emoji.name,
                 messageId: reaction.message.id,
                 userId: user.id,
-                guildId: reaction.message.guild.id
+                guildId: reaction.message.guild.id,
+                channelId: reaction.message.channel.id
             });
 
             // Find reaction role setup for this message
@@ -37,7 +38,11 @@ module.exports = {
                 }
             });
 
-            console.log('Debug - Database query result:', reactionRole);
+            console.log('Debug - Database query:', {
+                messageId: reaction.message.id,
+                guildId: reaction.message.guild.id
+            });
+            console.log('Debug - Database query result:', reactionRole?.toJSON());
 
             if (!reactionRole) {
                 console.log('Debug - No reaction role setup found for this message');

@@ -5,6 +5,7 @@ require('dotenv').config();
 const { initDatabase } = require('./config/database');
 const Logger = require('./utils/logger');
 const ReactionRole = require('./models/ReactionRole');
+const { sequelize } = require('./config/database');
 
 const client = new Client({
     intents: [
@@ -57,6 +58,16 @@ client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
     
     try {
+        // Test database connection
+        await sequelize.authenticate();
+        console.log('Database connection test successful');
+        
+        // List all reaction roles
+        const allRoles = await ReactionRole.findAll();
+        console.log('Current reaction roles in database:', 
+            allRoles.map(r => r.toJSON())
+        );
+
         // Set bot presence
         await client.user.setPresence({
             activities: [{
@@ -65,10 +76,6 @@ client.once('ready', async () => {
             }],
             status: 'online'
         });
-        
-        // Initialize database
-        await initDatabase();
-        console.log('Database models synchronized.');
         
     } catch (error) {
         console.error('Error in ready event:', error);
