@@ -14,6 +14,11 @@ const ReactionRole = sequelize.define('ReactionRole', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    emoji: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: ''
+    },
     emojiRolePairs: {
         type: DataTypes.JSONB,  // or DataTypes.JSON if not using PostgreSQL
         allowNull: false,

@@ -159,6 +159,7 @@ module.exports = {
                     guildId: interaction.guild.id,
                     messageId: messageId,
                     channelId: interaction.channel.id,
+                    emoji: pairs[0].emoji,  // Use the first emoji as the main emoji
                     emojiRolePairs: pairs
                 });
                 console.log('Debug - Successfully created new reaction role');
