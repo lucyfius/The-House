@@ -15,8 +15,9 @@ const ReactionRole = sequelize.define('ReactionRole', {
         allowNull: false
     },
     emojiRolePairs: {
-        type: DataTypes.JSONB,  // Store array of {emoji: string, roleId: string}
-        allowNull: false
+        type: DataTypes.JSONB,  // or DataTypes.JSON if not using PostgreSQL
+        allowNull: false,
+        defaultValue: []
     }
 });
 

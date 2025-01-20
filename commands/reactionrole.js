@@ -66,6 +66,30 @@ module.exports = {
                     return;
                 }
 
+                // Extract role ID from mention
+                const roleMatch = roleId.match(/^<@&(\d+)>$/);
+                if (!roleMatch) {
+                    await interaction.reply({
+                        content: `❌ Invalid role format. Please @mention the role.\nReceived: ${roleId}`,
+                        flags: ['Ephemeral']
+                    });
+                    return;
+                }
+
+                const cleanRoleId = roleMatch[1];
+                console.log('Debug - Cleaned roleId:', cleanRoleId);
+
+                const role = await interaction.guild.roles.fetch(cleanRoleId);
+                console.log('Debug - Found role:', role?.name || 'No role found'); // Debug log
+
+                if (!role) {
+                    await interaction.reply({
+                        content: `❌ Role not found! Make sure you're @mentioning the role properly.\n\nReceived: ${roleId}\nCleaned ID: ${cleanRoleId}`,
+                        flags: ['Ephemeral']
+                    });
+                    return;
+                }
+
                 // Add emoji validation
                 let finalEmoji = emojiInput;
                 let unicodeEmoji = emojiInput;
@@ -79,23 +103,6 @@ module.exports = {
                     console.log('Debug - Invalid emoji format:', emojiInput);
                     await interaction.reply({
                         content: `❌ Invalid emoji format: "${emojiInput}"\nUse either:\n1. Unicode emoji (✅)\n2. Emoji code (:white_check_mark:)`,
-                        flags: ['Ephemeral']
-                    });
-                    return;
-                }
-
-                console.log('Debug - Raw roleId:', roleId);
-                console.log('Debug - Role mention format:', roleId.match(/<@&\d+>/));
-
-                const cleanRoleId = roleId.replace(/[<@&>]/g, '');
-                console.log('Debug - Cleaned roleId:', cleanRoleId); // Debug log
-
-                const role = await interaction.guild.roles.fetch(cleanRoleId);
-                console.log('Debug - Found role:', role?.name || 'No role found'); // Debug log
-
-                if (!role) {
-                    await interaction.reply({
-                        content: `❌ Role not found! Make sure you're @mentioning the role properly.\n\nReceived: ${roleId}\nCleaned ID: ${cleanRoleId}`,
                         flags: ['Ephemeral']
                     });
                     return;
@@ -136,20 +143,34 @@ module.exports = {
             }
 
             // Delete any existing reaction role setup for this message
-            await ReactionRole.destroy({
-                where: {
-                    messageId: messageId,
-                    guildId: interaction.guild.id
-                }
-            });
+            try {
+                console.log('Debug - Deleting existing reaction roles');
+                await ReactionRole.destroy({
+                    where: {
+                        messageId: messageId,
+                        guildId: interaction.guild.id
+                    }
+                });
+                console.log('Debug - Successfully deleted existing reaction roles');
 
-            // Create new reaction role setup
-            await ReactionRole.create({
-                guildId: interaction.guild.id,
-                messageId: messageId,
-                channelId: interaction.channel.id,
-                emojiRolePairs: pairs
-            });
+                console.log('Debug - Creating new reaction role with pairs:', pairs);
+                // Create new reaction role setup
+                await ReactionRole.create({
+                    guildId: interaction.guild.id,
+                    messageId: messageId,
+                    channelId: interaction.channel.id,
+                    emojiRolePairs: pairs
+                });
+                console.log('Debug - Successfully created new reaction role');
+
+            } catch (error) {
+                console.error('Database Error:', error);
+                await interaction.reply({
+                    content: `❌ Database Error: ${error.message}\nThe reaction was added but role assignment won't work.`,
+                    flags: ['Ephemeral']
+                });
+                return;
+            }
 
             const embed = new EmbedBuilder()
                 .setTitle('✅ Reaction Roles Setup Complete')
