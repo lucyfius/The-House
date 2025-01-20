@@ -153,14 +153,14 @@ module.exports = {
                 });
                 console.log('Debug - Successfully deleted existing reaction roles');
 
-                console.log('Debug - Creating new reaction role with pairs:', pairs);
+                console.log('Debug - Creating new reaction role with pairs:', JSON.stringify(pairs));
                 // Create new reaction role setup
                 await ReactionRole.create({
                     guildId: interaction.guild.id,
                     messageId: messageId,
                     channelId: interaction.channel.id,
-                    emoji: pairs[0].emoji,  // Use the first emoji as the main emoji
-                    emojiRolePairs: pairs
+                    emoji: pairs[0].emoji,
+                    emojiRolePairs: JSON.stringify(pairs)  // Explicitly stringify the pairs array
                 });
                 console.log('Debug - Successfully created new reaction role');
 
