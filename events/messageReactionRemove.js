@@ -1,5 +1,5 @@
 const { Events } = require('discord.js');
-const { ReactionRole } = require('../models/ReactionRole');
+const ReactionRole = require('../models/ReactionRole');
 
 module.exports = {
     name: Events.MessageReactionRemove,
@@ -16,6 +16,12 @@ module.exports = {
         }
 
         try {
+            console.log('Debug - Processing reaction remove:', {
+                emoji: reaction.emoji.name,
+                messageId: reaction.message.id,
+                userId: user.id
+            });
+
             const reactionRole = await ReactionRole.findOne({
                 where: {
                     messageId: reaction.message.id,
@@ -23,15 +29,23 @@ module.exports = {
                 }
             });
 
-            if (!reactionRole) return;
+            if (!reactionRole) {
+                console.log('Debug - No reaction role setup found for this message');
+                return;
+            }
 
             const pair = reactionRole.emojiRolePairs.find(p => 
                 p.emoji === `:${reaction.emoji.name}:` || 
-                p.emojiString === `:${reaction.emoji.name}:` ||
                 p.emoji === reaction.emoji.name ||
                 p.emoji.replace(/:/g, '') === reaction.emoji.name
             );
-            if (!pair) return;
+
+            if (!pair) {
+                console.log('Debug - No matching emoji-role pair found');
+                return;
+            }
+
+            console.log('Debug - Found matching pair:', pair);
 
             const member = await reaction.message.guild.members.fetch(user.id);
             const role = await reaction.message.guild.roles.fetch(pair.roleId);
@@ -43,6 +57,7 @@ module.exports = {
 
             // Remove role
             await member.roles.remove(role);
+            console.log(`Debug - Removed role ${role.name} from user ${user.tag}`);
         } catch (error) {
             console.error('Error in reaction role removal:', error);
         }

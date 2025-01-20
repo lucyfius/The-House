@@ -1,5 +1,5 @@
 const { Events } = require('discord.js');
-const { ReactionRole } = require('../models/ReactionRole');
+const ReactionRole = require('../models/ReactionRole');
 
 module.exports = {
     name: Events.MessageReactionAdd,
@@ -18,6 +18,12 @@ module.exports = {
         }
 
         try {
+            console.log('Debug - Processing reaction add:', {
+                emoji: reaction.emoji.name,
+                messageId: reaction.message.id,
+                userId: user.id
+            });
+
             // Find reaction role setup for this message
             const reactionRole = await ReactionRole.findOne({
                 where: {
@@ -26,23 +32,29 @@ module.exports = {
                 }
             });
 
-            if (!reactionRole) return;
+            if (!reactionRole) {
+                console.log('Debug - No reaction role setup found for this message');
+                return;
+            }
+
+            console.log('Debug - Found reaction role setup:', {
+                storedPairs: reactionRole.emojiRolePairs,
+                reactionEmoji: reaction.emoji.name
+            });
 
             // Find matching emoji-role pair
-            const emojiCode = `:${reaction.emoji.name}:`;
-            console.log('Debug - Reaction emoji:', {
-                name: reaction.emoji.name,
-                emojiCode: emojiCode,
-                stored: reactionRole.emojiRolePairs
-            });
-            
             const pair = reactionRole.emojiRolePairs.find(p => 
-                p.emoji === emojiCode || 
-                p.emojiString === emojiCode ||
+                p.emoji === `:${reaction.emoji.name}:` || 
                 p.emoji === reaction.emoji.name ||
                 p.emoji.replace(/:/g, '') === reaction.emoji.name
             );
-            if (!pair) return;
+
+            if (!pair) {
+                console.log('Debug - No matching emoji-role pair found');
+                return;
+            }
+
+            console.log('Debug - Found matching pair:', pair);
 
             // Get member and role
             const member = await reaction.message.guild.members.fetch(user.id);
@@ -55,6 +67,7 @@ module.exports = {
 
             // Add role
             await member.roles.add(role);
+            console.log(`Debug - Added role ${role.name} to user ${user.tag}`);
         } catch (error) {
             console.error('Error in reaction role assignment:', error);
         }
