@@ -243,25 +243,27 @@ This raffle has been cancelled by an administrator.
             }
 
             case 'join': {
-                // Add raid prevention for join command
-                if (checkRaidPrevention(interaction.guild.id, interaction.user.id)) {
-                    return interaction.reply({
-                        content: '🛡️ You are joining raffles too quickly. Please wait a minute before trying again.',
-                        ephemeral: true
-                    });
-                }
-
                 if (!activeRaffle) {
                     return interaction.reply({
-                        content: '❌ There is no active raffle to join! Wait for one to start.',
+                        content: '❌ There is no active raffle to join!',
                         ephemeral: true
                     });
                 }
 
                 const number = interaction.options.getInteger('number');
-                
+
+                // Check if number is already taken
+                const numberTaken = activeRaffle.entries.some(entry => entry.number === number);
+                if (numberTaken) {
+                    return interaction.reply({
+                        content: `❌ Number ${number} has already been chosen! Please pick a different number.`,
+                        ephemeral: true
+                    });
+                }
+
                 // Check if user already joined
-                if (activeRaffle.entries.some(entry => entry.userId === interaction.user.id)) {
+                const alreadyJoined = activeRaffle.entries.some(entry => entry.userId === interaction.user.id);
+                if (alreadyJoined) {
                     return interaction.reply({
                         content: '❌ You have already joined this raffle!',
                         ephemeral: true
@@ -275,8 +277,25 @@ This raffle has been cancelled by an administrator.
                 });
                 await activeRaffle.save();
 
+                // Create an embed showing available numbers
+                const usedNumbers = activeRaffle.entries.map(entry => entry.number).sort((a, b) => a - b);
+                const availableNumbers = Array.from({length: 100}, (_, i) => i + 1)
+                    .filter(n => !usedNumbers.includes(n));
+
+                const embed = new EmbedBuilder()
+                    .setTitle('🎫 Raffle Entry Confirmed!')
+                    .setColor('#00FF00')
+                    .setDescription(`You joined with number ${number}!`)
+                    .addFields(
+                        { name: 'Taken Numbers', value: usedNumbers.join(', ') || 'None', inline: false },
+                        { name: 'Available Numbers', value: availableNumbers.length === 100 ? 'All numbers available!' : 
+                            availableNumbers.length > 20 ? `${availableNumbers.length} numbers available` : 
+                            availableNumbers.join(', '), inline: false }
+                    )
+                    .setFooter({ text: 'Good luck! 🍀' });
+
                 await interaction.reply({
-                    content: `🎫 You joined the raffle with number ${number}! Good luck!`,
+                    embeds: [embed],
                     ephemeral: true
                 });
                 break;

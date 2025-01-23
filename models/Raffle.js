@@ -24,6 +24,7 @@ const Raffle = sequelize.define('Raffle', {
     },
     winnerCount: {
         type: DataTypes.INTEGER,
+        allowNull: false,
         defaultValue: 1
     },
     endTime: {
@@ -31,20 +32,27 @@ const Raffle = sequelize.define('Raffle', {
         allowNull: false
     },
     status: {
-        type: DataTypes.ENUM('ACTIVE', 'ENDED', 'BETTING'),
-        defaultValue: 'ACTIVE'
+        type: DataTypes.ENUM('ACTIVE', 'COMPLETED', 'CANCELLED', 'BETTING'),
+        defaultValue: 'ACTIVE',
+        allowNull: false
     },
     winners: {
         type: DataTypes.JSONB,
-        defaultValue: []
+        defaultValue: [],
+        allowNull: false
     },
     entries: {
         type: DataTypes.JSONB,
-        defaultValue: []
+        defaultValue: [],
+        allowNull: false
+    },
+    winningNumber: {
+        type: DataTypes.INTEGER,
+        allowNull: true
     },
     bettingRound: {
         type: DataTypes.JSONB,
-        defaultValue: null
+        allowNull: true
     }
 });
 
