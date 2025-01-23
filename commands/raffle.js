@@ -54,7 +54,15 @@ module.exports = {
                 .addUserOption(option =>
                     option.setName('opponent')
                         .setDescription('🤝 Which winner do you want to challenge?')
-                        .setRequired(true)))
+                        .setRequired(true))
+                .addStringOption(option =>
+                    option.setName('side')
+                        .setDescription('🪙 Choose your side of the coin')
+                        .setRequired(true)
+                        .addChoices(
+                            { name: 'Heads', value: 'heads' },
+                            { name: 'Tails', value: 'tails' }
+                        )))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('accept')
@@ -217,12 +225,13 @@ module.exports = {
                     });
                 }
 
-                // Create betting round
+                const chosenSide = interaction.options.getString('side');
                 raffle.bettingRound = {
                     challenger: interaction.user.id,
                     opponent: opponent.id,
                     status: 'PENDING',
-                    timestamp: new Date()
+                    timestamp: new Date(),
+                    choice: chosenSide
                 };
                 await raffle.save();
 
@@ -230,9 +239,11 @@ module.exports = {
                     .setTitle('⚠️ High Stakes Challenge!')
                     .setColor('#FF0000')
                     .setDescription(`
-${interaction.user} has challenged ${opponent} to a winner-takes-all duel!
+${interaction.user} has challenged ${opponent} to a winner-takes-all coinflip!
 
 ⚠️ **WARNING:**
+• ${interaction.user} has chosen ${chosenSide.toUpperCase()}
+• ${opponent} will be ${chosenSide === 'heads' ? 'TAILS' : 'HEADS'}
 • Winner will claim ALL raffle prizes
 • Loser will lose their prize completely
 • This action cannot be undone!
@@ -288,20 +299,19 @@ Use \`/raffle accept\` or \`/raffle decline\` to respond!`)
                 }
 
                 // Generate random number for each player
-                const challengerNumber = Math.floor(Math.random() * 100) + 1;
-                const opponentNumber = Math.floor(Math.random() * 100) + 1;
-
-                const winner = challengerNumber > opponentNumber ? 
+                const coinflip = Math.random() < 0.5 ? 'heads' : 'tails';
+                const winner = coinflip === raffle.bettingRound.choice ? 
                     raffle.bettingRound.challenger : 
                     raffle.bettingRound.opponent;
 
-                // Update winners array to remove loser and keep only winner
                 const resultEmbed = new EmbedBuilder()
                     .setTitle('🎲 Challenge Results')
                     .setColor('#FFD700')
                     .setDescription(`
-🎯 ${interaction.user}: ${opponentNumber}
-🎯 <@${raffle.bettingRound.challenger}>: ${challengerNumber}
+🪙 The coin landed on: ${coinflip.toUpperCase()}!
+
+${coinflip === raffle.bettingRound.choice ? '👑' : '💀'} <@${raffle.bettingRound.challenger}> (${raffle.bettingRound.choice.toUpperCase()})
+${coinflip !== raffle.bettingRound.choice ? '👑' : '💀'} <@${raffle.bettingRound.opponent}> (${raffle.bettingRound.choice === 'heads' ? 'TAILS' : 'HEADS'})
 
 🏆 <@${winner}> wins and claims all raffle prizes!
 
