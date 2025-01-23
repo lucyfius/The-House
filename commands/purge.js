@@ -4,62 +4,55 @@ const { isAdmin } = require('../utils/permissions');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('purge')
-        .setDescription('Purge messages from the channel (no limit)')
+        .setDescription('🧹 Purge messages from the channel')
         .addIntegerOption(option =>
             option.setName('amount')
-                .setDescription('Number of messages to purge')
+                .setDescription('Number of messages to delete (1-100)')
                 .setRequired(true)
-                .setMinValue(1))
+                .setMinValue(1)
+                .setMaxValue(100))
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
     async execute(interaction) {
         if (!isAdmin(interaction.member)) {
             return interaction.reply({
-                content: 'You do not have permission to use this command.',
+                content: '❌ You need administrator permissions to use this command.',
                 ephemeral: true
             });
         }
 
         const amount = interaction.options.getInteger('amount');
-        const channel = interaction.channel;
-        let deletedTotal = 0;
 
         try {
-            await interaction.deferReply({ ephemeral: true });
-
-            // Delete messages in batches of 100
-            while (deletedTotal < amount) {
-                const toDelete = Math.min(100, amount - deletedTotal);
-                const messages = await channel.messages.fetch({ limit: toDelete });
-                await channel.bulkDelete(messages, true);
-                deletedTotal += messages.size;
-
-                // If less messages were fetched than requested, we've hit the end
-                if (messages.size < toDelete) break;
-            }
-
-            await interaction.client.logger.logModAction(
-                interaction,
-                'Channel Purged',
-                { 
-                    id: channel.id, 
-                    tag: `#${channel.name}` 
-                },
-                `${interaction.user.tag} purged ${deletedTotal} messages in #${channel.name}`,
-                { 
-                    channelId: channel.id,
-                    messageCount: deletedTotal
-                }
-            );
-
-            await interaction.editReply({
-                content: `Successfully purged ${deletedTotal} messages.`,
-                ephemeral: true
+            // Fetch messages before deleting
+            const messages = await interaction.channel.messages.fetch({ 
+                limit: amount,
+                before: interaction.id // Get messages before the command message
             });
+
+            // Delete messages
+            await interaction.channel.bulkDelete(messages, true)
+                .then(deleted => {
+                    interaction.reply({
+                        content: `✅ Successfully deleted ${deleted.size} messages.`,
+                        ephemeral: true
+                    });
+                })
+                .catch(error => {
+                    if (error.code === 50034) { // Message older than 14 days
+                        interaction.reply({
+                            content: '❌ Some messages are too old to be bulk deleted. Try deleting fewer messages or use individual deletion.',
+                            ephemeral: true
+                        });
+                    } else {
+                        throw error;
+                    }
+                });
+
         } catch (error) {
-            console.error('Purge error:', error);
-            await interaction.editReply({
-                content: 'Failed to purge messages. Messages older than 14 days cannot be bulk deleted.',
+            console.error('Error purging messages:', error);
+            await interaction.reply({
+                content: `❌ Failed to purge messages: ${error.message}`,
                 ephemeral: true
             });
         }
