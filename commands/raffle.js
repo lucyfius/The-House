@@ -3,6 +3,7 @@ const { isAdmin } = require('../utils/permissions');
 const { checkRateLimit, checkRaidPrevention } = require('../utils/rateLimiter');
 const Raffle = require('../models/Raffle');
 const { client } = require('../index.js');
+const { endRaffle } = require('../utils/raffleUtils');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -107,11 +108,27 @@ module.exports = {
 
                 try {
                     await interaction.deferReply();
+                    
+                    // Add debug logging
+                    console.log('Debug - Ending raffle:', {
+                        messageId: activeRaffle.messageId,
+                        status: activeRaffle.status,
+                        entries: activeRaffle.entries?.length || 0
+                    });
+
+                    // Make sure endRaffle is defined and imported
+                    if (typeof endRaffle !== 'function') {
+                        throw new Error('endRaffle function is not defined');
+                    }
+
                     await endRaffle(activeRaffle.messageId);
                     await interaction.editReply('🏁 Raffle ended early by admin!');
                 } catch (error) {
                     console.error('Error ending raffle:', error);
-                    await interaction.editReply('❌ Failed to end raffle. Please try again.');
+                    
+                    // More descriptive error message
+                    const errorMessage = error.message || 'Unknown error occurred';
+                    await interaction.editReply(`❌ Failed to end raffle: ${errorMessage}`);
                 }
                 break;
             }
