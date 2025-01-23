@@ -40,7 +40,8 @@ for (const file of commandFiles) {
         console.log(`Loading command from ${file}:`, {
             hasData: 'data' in command,
             hasExecute: 'execute' in command,
-            name: command.data?.name
+            name: command.data?.name,
+            subcommands: command.data?.options?.map(opt => opt.name)
         });
         
         if ('data' in command && 'execute' in command) {
@@ -64,7 +65,8 @@ const rest = new REST().setToken(process.env.TOKEN);
         const commands = [];
         for (const command of client.commands.values()) {
             commands.push(command.data.toJSON());
-            console.log(`Registering command: ${command.data.name}`); // Debug log
+            console.log(`Registering command: ${command.data.name} with subcommands:`, 
+                command.data.options?.map(opt => opt.name));
         }
 
         const data = await rest.put(
