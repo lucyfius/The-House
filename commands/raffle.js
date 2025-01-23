@@ -268,8 +268,9 @@ Use \`/raffle accept\` or \`/raffle decline\` to respond!`)
                 const raffle = await Raffle.findOne({
                     where: {
                         guildId: interaction.guild.id,
-                        status: 'BETTING'
-                    }
+                        status: ['BETTING', 'ENDED']
+                    },
+                    order: [['createdAt', 'DESC']]
                 });
 
                 if (!raffle || !raffle.bettingRound || raffle.bettingRound.status !== 'PENDING') {
