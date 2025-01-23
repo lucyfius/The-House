@@ -32,10 +32,14 @@ async function endRaffle(raffle, guild) {
 Prize: ${raffle.prize}
 Winners: ${winners.map(w => `<@${w}>`).join(', ') || 'No winners'}
 
-🎲 Winners can use \`/raffle bet\` to gamble their winnings against each other!`)
+🎲 Winners can challenge each other to combine their prizes!
+Use \`/raffle bet\` to challenge another winner.`)
             .setTimestamp();
 
         await channel.send({ embeds: [embed] });
+
+        // Add debug logging after picking winners
+        console.log('Debug - Raffle winners:', winners);
 
         // Update raffle status
         raffle.status = 'BETTING';

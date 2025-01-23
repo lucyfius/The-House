@@ -50,14 +50,14 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('bet')
-                .setDescription('🎲 Gamble your winnings with another winner')
+                .setDescription('🎲 Challenge another winner to combine prizes')
                 .addUserOption(option =>
                     option.setName('opponent')
                         .setDescription('🤝 Which winner do you want to challenge?')
                         .setRequired(true))
                 .addIntegerOption(option =>
                     option.setName('amount')
-                        .setDescription('💵 Additional amount to wager (optional)')
+                        .setDescription('💵 Additional wager (optional)')
                         .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
@@ -152,21 +152,34 @@ module.exports = {
 
                 if (!raffle) {
                     return interaction.reply({
-                        content: '❌ There is no raffle in the betting phase!',
+                        content: '❌ There is no raffle in the challenge phase!',
                         ephemeral: true
                     });
                 }
 
+                // Add debug logging
+                console.log('Debug - Bet command:', {
+                    userId: interaction.user.id,
+                    winners: raffle.winners,
+                    isWinner: raffle.winners.includes(interaction.user.id)
+                });
+
                 // Check if user is a winner
                 if (!raffle.winners.includes(interaction.user.id)) {
                     return interaction.reply({
-                        content: '❌ Only raffle winners can place bets!',
+                        content: '❌ Only raffle winners can initiate challenges!',
                         ephemeral: true
                     });
                 }
 
                 const opponent = interaction.options.getUser('opponent');
                 const amount = interaction.options.getInteger('amount');
+
+                // Add debug logging
+                console.log('Debug - Opponent check:', {
+                    opponentId: opponent.id,
+                    isOpponentWinner: raffle.winners.includes(opponent.id)
+                });
 
                 // Validate opponent is also a winner
                 if (!raffle.winners.includes(opponent.id)) {
@@ -209,7 +222,7 @@ module.exports = {
                 await raffle.save();
 
                 const betEmbed = new EmbedBuilder()
-                    .setTitle('🎲 Winner Challenge')
+                    .setTitle('🎲 Challenge Results')
                     .setColor('#FFD700')
                     .setDescription(`
 ${interaction.user} has challenged ${opponent} to gamble their winnings!
@@ -283,7 +296,7 @@ ${opponent}, use \`/raffle accept\` or \`/raffle decline\` to respond!
                     .setTitle('🎲 Challenge Results')
                     .setColor('#FFD700')
                     .setDescription(`
-�� ${interaction.user}: ${opponentNumber}
+🎯 ${interaction.user}: ${opponentNumber}
 🎯 <@${raffle.bettingRound.challenger}>: ${challengerNumber}
 
 🏆 <@${winner}> wins and claims both raffle prizes!
