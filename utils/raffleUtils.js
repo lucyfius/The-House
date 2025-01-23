@@ -28,7 +28,7 @@ async function endRaffle(raffle, guild) {
         await channel.send({ embeds: [embed] });
 
         // Update raffle status
-        raffle.status = 'COMPLETED';
+        raffle.status = 'BETTING';
         raffle.winners = winners;
         await raffle.save();
 

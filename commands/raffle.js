@@ -71,26 +71,254 @@ module.exports = {
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
 
-        // Rate limit check for all commands except admin commands and bet responses
-        if (!['end', 'cancel', 'start', 'accept', 'decline'].includes(subcommand)) {
-            const rateLimit = checkRateLimit(interaction.user.id, `raffle-${subcommand}`);
-            if (rateLimit.limited) {
-                return interaction.reply({
-                    content: `⏰ Please wait ${rateLimit.timeLeft} seconds before using this command again.`,
-                    ephemeral: true
-                });
-            }
-        }
-
-        // Check for active raffle
-        const activeRaffle = await Raffle.findOne({
-            where: {
-                guildId: interaction.guild.id,
-                status: 'ACTIVE'
-            }
-        });
-
         switch (subcommand) {
+            case 'join': {
+                // Rate limit for join command
+                const joinRateLimit = checkRateLimit(interaction.user.id, 'raffle-join', 5);
+                if (joinRateLimit.limited) {
+                    return interaction.reply({
+                        content: `⏰ Please wait ${joinRateLimit.timeLeft} seconds before joining again.`,
+                        ephemeral: true
+                    });
+                }
+
+                // Check for active raffle
+                const activeRaffle = await Raffle.findOne({
+                    where: {
+                        guildId: interaction.guild.id,
+                        status: 'ACTIVE'
+                    }
+                });
+
+                if (!activeRaffle) {
+                    return interaction.reply({
+                        content: '❌ There is no active raffle to join!',
+                        ephemeral: true
+                    });
+                }
+
+                const number = interaction.options.getInteger('number');
+
+                // Check if the number is already taken
+                const entries = activeRaffle.entries || [];
+                const numbers = activeRaffle.numbers || [];
+
+                if (numbers.includes(number)) {
+                    return interaction.reply({
+                        content: `❌ Number ${number} has already been chosen! Please pick a different number.`,
+                        ephemeral: true
+                    });
+                }
+
+                // Check if user already joined
+                if (entries.includes(interaction.user.id)) {
+                    return interaction.reply({
+                        content: '❌ You have already joined this raffle!',
+                        ephemeral: true
+                    });
+                }
+
+                try {
+                    // Add user to entries and their number to numbers array
+                    activeRaffle.entries = [...entries, interaction.user.id];
+                    activeRaffle.numbers = [...numbers, number];
+                    await activeRaffle.save();
+
+                    const embed = new EmbedBuilder()
+                        .setTitle('🎫 Raffle Entry')
+                        .setColor('#00FF00')
+                        .setDescription(`${interaction.user} joined with number ${number}!`)
+                        .setFooter({ text: `Total Entries: ${activeRaffle.entries.length}` })
+                        .setTimestamp();
+
+                    await interaction.reply({ embeds: [embed] });
+                } catch (error) {
+                    console.error('Error joining raffle:', error);
+                    await interaction.reply({
+                        content: '❌ Failed to join the raffle. Please try again.',
+                        ephemeral: true
+                    });
+                }
+                break;
+            }
+
+            case 'bet': {
+                const raffle = await Raffle.findOne({
+                    where: {
+                        guildId: interaction.guild.id,
+                        status: 'BETTING'
+                    }
+                });
+
+                if (!raffle) {
+                    return interaction.reply({
+                        content: '❌ There is no raffle in the betting phase!',
+                        ephemeral: true
+                    });
+                }
+
+                // Check if user is a winner
+                if (!raffle.winners.includes(interaction.user.id)) {
+                    return interaction.reply({
+                        content: '❌ Only raffle winners can place bets!',
+                        ephemeral: true
+                    });
+                }
+
+                const opponent = interaction.options.getUser('opponent');
+                const amount = interaction.options.getInteger('amount');
+
+                // Validate opponent is also a winner
+                if (!raffle.winners.includes(opponent.id)) {
+                    return interaction.reply({
+                        content: '❌ You can only challenge other raffle winners!',
+                        ephemeral: true
+                    });
+                }
+
+                // Only apply rate limit if all validations pass
+                const betRateLimit = checkRateLimit(interaction.user.id, 'raffle-bet', 5);
+                if (betRateLimit.limited) {
+                    return interaction.reply({
+                        content: `⏰ Please wait ${betRateLimit.timeLeft} seconds between placing bets.`,
+                        ephemeral: true
+                    });
+                }
+
+                // Check if either user is already in a bet
+                if (raffle.bettingRound && (
+                    raffle.bettingRound.challenger === interaction.user.id ||
+                    raffle.bettingRound.challenger === opponent.id ||
+                    raffle.bettingRound.opponent === interaction.user.id ||
+                    raffle.bettingRound.opponent === opponent.id
+                )) {
+                    return interaction.reply({
+                        content: '❌ One of the users is already in an active bet!',
+                        ephemeral: true
+                    });
+                }
+
+                // Create betting round
+                raffle.bettingRound = {
+                    challenger: interaction.user.id,
+                    opponent: opponent.id,
+                    amount: amount,
+                    status: 'PENDING',
+                    timestamp: new Date()
+                };
+                await raffle.save();
+
+                const betEmbed = new EmbedBuilder()
+                    .setTitle('🎲 Betting Challenge')
+                    .setColor('#FFD700')
+                    .setDescription(`
+${interaction.user} has challenged ${opponent} to a bet!
+
+💰 Amount: ${amount} units
+⏰ Expires: <t:${Math.floor(Date.now()/1000 + 300)}:R>
+
+${opponent}, use \`/raffle accept\` or \`/raffle decline\` to respond!`)
+                    .setFooter({ text: 'Bet expires in 5 minutes' })
+                    .setTimestamp();
+
+                await interaction.reply({ embeds: [betEmbed] });
+                
+                // Auto-expire bet after 5 minutes
+                setTimeout(async () => {
+                    const currentRaffle = await Raffle.findOne({
+                        where: { id: raffle.id }
+                    });
+                    if (currentRaffle?.bettingRound?.status === 'PENDING') {
+                        currentRaffle.bettingRound = null;
+                        await currentRaffle.save();
+                        
+                        await interaction.channel.send({
+                            content: `⏰ The bet between ${interaction.user} and ${opponent} has expired.`,
+                            ephemeral: true
+                        });
+                    }
+                }, 300000); // 5 minutes
+                break;
+            }
+
+            case 'accept': {
+                const raffle = await Raffle.findOne({
+                    where: {
+                        guildId: interaction.guild.id,
+                        status: 'BETTING'
+                    }
+                });
+
+                if (!raffle || !raffle.bettingRound || raffle.bettingRound.status !== 'PENDING') {
+                    return interaction.reply({
+                        content: '❌ There is no pending bet to accept!',
+                        ephemeral: true
+                    });
+                }
+
+                if (raffle.bettingRound.opponent !== interaction.user.id) {
+                    return interaction.reply({
+                        content: '❌ This bet challenge was not sent to you!',
+                        ephemeral: true
+                    });
+                }
+
+                // Update betting round status
+                raffle.bettingRound.status = 'ACTIVE';
+                await raffle.save();
+
+                const acceptEmbed = new EmbedBuilder()
+                    .setTitle('🎲 Bet Accepted!')
+                    .setColor('#00FF00')
+                    .setDescription(`
+💫 The bet is on! 
+
+🤝 Players: <@${raffle.bettingRound.challenger}> vs <@${raffle.bettingRound.opponent}>
+💰 Amount: ${raffle.bettingRound.amount} units
+
+Use \`/betstats add\` to record the result when done!`)
+                    .setTimestamp();
+
+                await interaction.reply({ embeds: [acceptEmbed] });
+                break;
+            }
+
+            case 'decline': {
+                const raffle = await Raffle.findOne({
+                    where: {
+                        guildId: interaction.guild.id,
+                        status: 'BETTING'
+                    }
+                });
+
+                if (!raffle || !raffle.bettingRound || raffle.bettingRound.status !== 'PENDING') {
+                    return interaction.reply({
+                        content: '❌ There is no pending bet to decline!',
+                        ephemeral: true
+                    });
+                }
+
+                if (raffle.bettingRound.opponent !== interaction.user.id) {
+                    return interaction.reply({
+                        content: '❌ This bet challenge was not sent to you!',
+                        ephemeral: true
+                    });
+                }
+
+                // Clear betting round
+                raffle.bettingRound = null;
+                await raffle.save();
+
+                const declineEmbed = new EmbedBuilder()
+                    .setTitle('🚫 Bet Declined')
+                    .setColor('#FF0000')
+                    .setDescription(`<@${interaction.user.id}> has declined the betting challenge.`)
+                    .setTimestamp();
+
+                await interaction.reply({ embeds: [declineEmbed] });
+                break;
+            }
+
             case 'end': {
                 if (!isAdmin(interaction.member)) {
                     return interaction.reply({
@@ -237,236 +465,6 @@ This raffle has been cancelled by an administrator.
 
                 // Schedule raffle end
                 setTimeout(() => endRaffle(message.id), duration * 60000);
-                break;
-            }
-
-            case 'join': {
-                if (!activeRaffle) {
-                    return interaction.reply({
-                        content: '❌ There is no active raffle to join!',
-                        ephemeral: true
-                    });
-                }
-
-                const number = interaction.options.getInteger('number');
-
-                // Check if the number is already taken
-                const entries = activeRaffle.entries || [];
-                const numbers = activeRaffle.numbers || [];
-
-                if (numbers.includes(number)) {
-                    return interaction.reply({
-                        content: `❌ Number ${number} has already been chosen! Please pick a different number.`,
-                        ephemeral: true
-                    });
-                }
-
-                // Check if user already joined
-                if (entries.includes(interaction.user.id)) {
-                    return interaction.reply({
-                        content: '❌ You have already joined this raffle!',
-                        ephemeral: true
-                    });
-                }
-
-                try {
-                    // Add user to entries and their number to numbers array
-                    activeRaffle.entries = [...entries, interaction.user.id];
-                    activeRaffle.numbers = [...numbers, number];
-                    await activeRaffle.save();
-
-                    const embed = new EmbedBuilder()
-                        .setTitle('🎫 Raffle Entry')
-                        .setColor('#00FF00')
-                        .setDescription(`${interaction.user} joined with number ${number}!`)
-                        .setFooter({ text: `Total Entries: ${activeRaffle.entries.length}` })
-                        .setTimestamp();
-
-                    await interaction.reply({ embeds: [embed] });
-                } catch (error) {
-                    console.error('Error joining raffle:', error);
-                    await interaction.reply({
-                        content: '❌ Failed to join the raffle. Please try again.',
-                        ephemeral: true
-                    });
-                }
-                break;
-            }
-
-            case 'bet': {
-                // Reduce cooldown from 30 seconds to 5 seconds
-                const betRateLimit = checkRateLimit(interaction.user.id, 'raffle-bet', 5);
-                if (betRateLimit.limited) {
-                    return interaction.reply({
-                        content: `⏰ Please wait ${betRateLimit.timeLeft} seconds between placing bets.`,
-                        ephemeral: true
-                    });
-                }
-
-                const raffle = await Raffle.findOne({
-                    where: {
-                        guildId: interaction.guild.id,
-                        status: 'BETTING'
-                    }
-                });
-
-                if (!raffle) {
-                    return interaction.reply({
-                        content: '❌ There is no raffle in the betting phase!',
-                        ephemeral: true
-                    });
-                }
-
-                // Check if user is a winner
-                if (!raffle.winners.some(w => w.userId === interaction.user.id)) {
-                    return interaction.reply({
-                        content: '❌ Only raffle winners can place bets!',
-                        ephemeral: true
-                    });
-                }
-
-                const opponent = interaction.options.getUser('opponent');
-                const amount = interaction.options.getInteger('amount');
-
-                // Validate opponent is also a winner
-                if (!raffle.winners.some(w => w.userId === opponent.id)) {
-                    return interaction.reply({
-                        content: '❌ You can only challenge other raffle winners!',
-                        ephemeral: true
-                    });
-                }
-
-                // Check if either user is already in a bet
-                if (raffle.bettingRound && (
-                    raffle.bettingRound.challenger === interaction.user.id ||
-                    raffle.bettingRound.challenger === opponent.id ||
-                    raffle.bettingRound.opponent === interaction.user.id ||
-                    raffle.bettingRound.opponent === opponent.id
-                )) {
-                    return interaction.reply({
-                        content: '❌ One of the users is already in an active bet!',
-                        ephemeral: true
-                    });
-                }
-
-                // Create betting round
-                raffle.bettingRound = {
-                    challenger: interaction.user.id,
-                    opponent: opponent.id,
-                    amount: amount,
-                    status: 'PENDING',
-                    timestamp: new Date()
-                };
-                await raffle.save();
-
-                const betEmbed = new EmbedBuilder()
-                    .setTitle('🎲 Betting Challenge')
-                    .setColor('#FFD700')
-                    .setDescription(`
-${interaction.user} has challenged ${opponent} to a bet!
-
-💰 Amount: ${amount} units
-⏰ Expires: <t:${Math.floor(Date.now()/1000 + 300)}:R>
-
-${opponent}, use \`/raffle accept\` or \`/raffle decline\` to respond!`)
-                    .setFooter({ text: 'Bet expires in 5 minutes' })
-                    .setTimestamp();
-
-                await interaction.reply({ embeds: [betEmbed] });
-                
-                // Auto-expire bet after 5 minutes
-                setTimeout(async () => {
-                    const currentRaffle = await Raffle.findOne({
-                        where: { id: raffle.id }
-                    });
-                    if (currentRaffle?.bettingRound?.status === 'PENDING') {
-                        currentRaffle.bettingRound = null;
-                        await currentRaffle.save();
-                        
-                        await interaction.channel.send({
-                            content: `⏰ The bet between ${interaction.user} and ${opponent} has expired.`,
-                            ephemeral: true
-                        });
-                    }
-                }, 300000); // 5 minutes
-                break;
-            }
-
-            case 'accept': {
-                const raffle = await Raffle.findOne({
-                    where: {
-                        guildId: interaction.guild.id,
-                        status: 'BETTING'
-                    }
-                });
-
-                if (!raffle || !raffle.bettingRound || raffle.bettingRound.status !== 'PENDING') {
-                    return interaction.reply({
-                        content: '❌ There is no pending bet to accept!',
-                        ephemeral: true
-                    });
-                }
-
-                if (raffle.bettingRound.opponent !== interaction.user.id) {
-                    return interaction.reply({
-                        content: '❌ This bet challenge was not sent to you!',
-                        ephemeral: true
-                    });
-                }
-
-                // Update betting round status
-                raffle.bettingRound.status = 'ACTIVE';
-                await raffle.save();
-
-                const acceptEmbed = new EmbedBuilder()
-                    .setTitle('🎲 Bet Accepted!')
-                    .setColor('#00FF00')
-                    .setDescription(`
-💫 The bet is on! 
-
-🤝 Players: <@${raffle.bettingRound.challenger}> vs <@${raffle.bettingRound.opponent}>
-💰 Amount: ${raffle.bettingRound.amount} units
-
-Use \`/betstats add\` to record the result when done!`)
-                    .setTimestamp();
-
-                await interaction.reply({ embeds: [acceptEmbed] });
-                break;
-            }
-
-            case 'decline': {
-                const raffle = await Raffle.findOne({
-                    where: {
-                        guildId: interaction.guild.id,
-                        status: 'BETTING'
-                    }
-                });
-
-                if (!raffle || !raffle.bettingRound || raffle.bettingRound.status !== 'PENDING') {
-                    return interaction.reply({
-                        content: '❌ There is no pending bet to decline!',
-                        ephemeral: true
-                    });
-                }
-
-                if (raffle.bettingRound.opponent !== interaction.user.id) {
-                    return interaction.reply({
-                        content: '❌ This bet challenge was not sent to you!',
-                        ephemeral: true
-                    });
-                }
-
-                // Clear betting round
-                raffle.bettingRound = null;
-                await raffle.save();
-
-                const declineEmbed = new EmbedBuilder()
-                    .setTitle('🚫 Bet Declined')
-                    .setColor('#FF0000')
-                    .setDescription(`<@${interaction.user.id}> has declined the betting challenge.`)
-                    .setTimestamp();
-
-                await interaction.reply({ embeds: [declineEmbed] });
                 break;
             }
         }
