@@ -71,8 +71,8 @@ module.exports = {
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
 
-        // Rate limit check for all commands except admin commands
-        if (!['end', 'cancel', 'start'].includes(subcommand)) {
+        // Rate limit check for all commands except admin commands and bet responses
+        if (!['end', 'cancel', 'start', 'accept', 'decline'].includes(subcommand)) {
             const rateLimit = checkRateLimit(interaction.user.id, `raffle-${subcommand}`);
             if (rateLimit.limited) {
                 return interaction.reply({
@@ -294,8 +294,8 @@ This raffle has been cancelled by an administrator.
             }
 
             case 'bet': {
-                // Add longer cooldown for betting
-                const betRateLimit = checkRateLimit(interaction.user.id, 'raffle-bet', 30);
+                // Reduce cooldown from 30 seconds to 5 seconds
+                const betRateLimit = checkRateLimit(interaction.user.id, 'raffle-bet', 5);
                 if (betRateLimit.limited) {
                     return interaction.reply({
                         content: `⏰ Please wait ${betRateLimit.timeLeft} seconds between placing bets.`,
