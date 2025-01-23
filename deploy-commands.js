@@ -33,8 +33,8 @@ const rest = new REST().setToken(process.env.TOKEN);
         console.log(`Started refreshing ${commands.length} application (/) commands.`);
         console.log('Commands to deploy:', commands.map(cmd => cmd.name));
 
-        // Deploy to each guild separately instead of globally
-        const guilds = ['1326740842492461176']; // Add your guild IDs here
+      
+        const guilds = ['1326740842492461176']; 
         
         for (const guildId of guilds) {
             const data = await rest.put(
