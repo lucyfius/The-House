@@ -32,7 +32,7 @@ const Raffle = sequelize.define('Raffle', {
         allowNull: false
     },
     status: {
-        type: DataTypes.ENUM('ACTIVE', 'COMPLETED', 'CANCELLED', 'BETTING'),
+        type: DataTypes.ENUM('ACTIVE', 'COMPLETED', 'CANCELLED', 'BETTING', 'ENDED'),
         defaultValue: 'ACTIVE',
         allowNull: false
     },

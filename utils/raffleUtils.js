@@ -11,7 +11,7 @@ async function endRaffle(raffle, guild) {
         // Pick winners
         const entries = raffle.entries || [];
         const winners = [];
-        const numWinners = Math.min(raffle.winners, entries.length);
+        const numWinners = Math.min(raffle.winnerCount, entries.length);
 
         for (let i = 0; i < numWinners; i++) {
             const winnerIndex = Math.floor(Math.random() * entries.length);
@@ -28,7 +28,7 @@ async function endRaffle(raffle, guild) {
         await channel.send({ embeds: [embed] });
 
         // Update raffle status
-        raffle.status = 'ENDED';
+        raffle.status = 'COMPLETED';
         raffle.winners = winners;
         await raffle.save();
 
