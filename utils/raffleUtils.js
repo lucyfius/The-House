@@ -35,6 +35,13 @@ async function endRaffle(raffle, guild) {
             .slice(0, raffle.winnerCount)
             .map(p => p.userId);
 
+        console.log('Debug - Setting winners:', {
+            winners,
+            isArray: Array.isArray(winners),
+            participantsCount: participants.length,
+            selectedWinners: winners.length
+        });
+
         // Create winners announcement with number details
         const embed = new EmbedBuilder()
             .setTitle('🎉 Raffle Ended!')
@@ -55,9 +62,9 @@ Use \`/raffle bet\` to challenge another winner.`)
 
         await channel.send({ embeds: [embed] });
 
-        // Update raffle status
+        // Update raffle status and ensure winners is stored as an array
         raffle.status = 'BETTING';
-        raffle.winners = winners;
+        raffle.winners = JSON.parse(JSON.stringify(winners)); // Force array conversion
         await raffle.save();
 
         console.log(`Raffle ${raffle.id} ended successfully with ${winners.length} winners. Winning number: ${winningNumber}`);

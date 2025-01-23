@@ -157,17 +157,25 @@ module.exports = {
                     });
                 }
 
-                // Add debug logging
-                console.log('Debug - Bet command:', {
+                // Ensure winners is an array
+                if (!Array.isArray(raffle.winners)) {
+                    console.log('Converting winners to array:', raffle.winners);
+                    raffle.winners = JSON.parse(JSON.stringify(raffle.winners));
+                }
+
+                // Detailed debug logging
+                console.log('Debug - Challenge attempt:', {
                     userId: interaction.user.id,
                     winners: raffle.winners,
-                    isWinner: raffle.winners.includes(interaction.user.id)
+                    isArray: Array.isArray(raffle.winners),
+                    winnerCheck: raffle.winners.includes(interaction.user.id),
+                    rawWinners: JSON.stringify(raffle.winners)
                 });
 
                 // Check if user is a winner
                 if (!raffle.winners.includes(interaction.user.id)) {
                     return interaction.reply({
-                        content: '❌ Only raffle winners can initiate challenges!',
+                        content: `❌ Only raffle winners can initiate challenges! Debug: You are not in winners list: ${raffle.winners.join(', ')}`,
                         ephemeral: true
                     });
                 }
@@ -175,9 +183,10 @@ module.exports = {
                 const opponent = interaction.options.getUser('opponent');
                 const amount = interaction.options.getInteger('amount');
 
-                // Add debug logging
+                // Debug opponent check
                 console.log('Debug - Opponent check:', {
                     opponentId: opponent.id,
+                    winners: raffle.winners,
                     isOpponentWinner: raffle.winners.includes(opponent.id)
                 });
 
