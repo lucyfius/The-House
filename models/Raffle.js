@@ -53,6 +53,10 @@ const Raffle = sequelize.define('Raffle', {
     bettingRound: {
         type: DataTypes.JSONB,
         allowNull: true
+    },
+    numbers: {
+        type: DataTypes.ARRAY(DataTypes.INTEGER),
+        defaultValue: []
     }
 });
 

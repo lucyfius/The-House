@@ -33,13 +33,16 @@ const rest = new REST().setToken(process.env.TOKEN);
         console.log(`Started refreshing ${commands.length} application (/) commands.`);
         console.log('Commands to deploy:', commands.map(cmd => cmd.name));
 
-        // The put method is used to fully refresh all commands
-        const data = await rest.put(
-            Routes.applicationCommands(process.env.CLIENT_ID),
-            { body: commands },
-        );
-
-        console.log(`Successfully reloaded ${data.length} application (/) commands.`);
+        // Deploy to each guild separately instead of globally
+        const guilds = ['YOUR_GUILD_ID']; // Add your guild IDs here
+        
+        for (const guildId of guilds) {
+            const data = await rest.put(
+                Routes.applicationGuildCommands(process.env.CLIENT_ID, guildId),
+                { body: commands },
+            );
+            console.log(`Successfully reloaded ${data.length} application (/) commands for guild ${guildId}`);
+        }
     } catch (error) {
         console.error('Error deploying commands:', error);
     }

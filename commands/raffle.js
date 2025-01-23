@@ -42,7 +42,7 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('end')
-                .setDescription('🏁 End the current raffle early (Admin only)'))
+                .setDescription('🏁 End the current raffle (Admin only)'))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('cancel')
@@ -92,43 +92,41 @@ module.exports = {
 
         switch (subcommand) {
             case 'end': {
-                if (!isAdmin(interaction.member) && interaction.guild.ownerId !== interaction.user.id) {
+                if (!isAdmin(interaction.member)) {
                     return interaction.reply({
-                        content: '❌ Only administrators and the server owner can end raffles early.',
-                        ephemeral: true
-                    });
-                }
-
-                if (!activeRaffle) {
-                    return interaction.reply({
-                        content: '❌ There is no active raffle to end.',
+                        content: '❌ Only administrators can end raffles.',
                         ephemeral: true
                     });
                 }
 
                 try {
-                    await interaction.deferReply();
-                    
-                    // Add debug logging
-                    console.log('Debug - Ending raffle:', {
-                        messageId: activeRaffle.messageId,
-                        status: activeRaffle.status,
-                        entries: activeRaffle.entries?.length || 0
+                    const raffle = await Raffle.findOne({
+                        where: {
+                            guildId: interaction.guild.id,
+                            status: 'ACTIVE'
+                        }
                     });
 
-                    // Make sure endRaffle is defined and imported
-                    if (typeof endRaffle !== 'function') {
-                        throw new Error('endRaffle function is not defined');
+                    if (!raffle) {
+                        return interaction.reply({
+                            content: '❌ No active raffle found.',
+                            ephemeral: true
+                        });
                     }
 
-                    await endRaffle(activeRaffle.messageId);
-                    await interaction.editReply('🏁 Raffle ended early by admin!');
+                    // End the raffle
+                    await endRaffle(raffle, interaction.guild);
+                    
+                    await interaction.reply({
+                        content: '✅ Raffle ended successfully!',
+                        ephemeral: true
+                    });
                 } catch (error) {
                     console.error('Error ending raffle:', error);
-                    
-                    // More descriptive error message
-                    const errorMessage = error.message || 'Unknown error occurred';
-                    await interaction.editReply(`❌ Failed to end raffle: ${errorMessage}`);
+                    await interaction.reply({
+                        content: `❌ Failed to end raffle: ${error.message}`,
+                        ephemeral: true
+                    });
                 }
                 break;
             }
@@ -252,9 +250,11 @@ This raffle has been cancelled by an administrator.
 
                 const number = interaction.options.getInteger('number');
 
-                // Check if number is already taken
-                const numberTaken = activeRaffle.entries.some(entry => entry.number === number);
-                if (numberTaken) {
+                // Check if the number is already taken
+                const entries = activeRaffle.entries || [];
+                const numbers = activeRaffle.numbers || [];
+
+                if (numbers.includes(number)) {
                     return interaction.reply({
                         content: `❌ Number ${number} has already been chosen! Please pick a different number.`,
                         ephemeral: true
@@ -262,42 +262,34 @@ This raffle has been cancelled by an administrator.
                 }
 
                 // Check if user already joined
-                const alreadyJoined = activeRaffle.entries.some(entry => entry.userId === interaction.user.id);
-                if (alreadyJoined) {
+                if (entries.includes(interaction.user.id)) {
                     return interaction.reply({
                         content: '❌ You have already joined this raffle!',
                         ephemeral: true
                     });
                 }
 
-                // Add entry
-                activeRaffle.entries.push({
-                    userId: interaction.user.id,
-                    number: number
-                });
-                await activeRaffle.save();
+                try {
+                    // Add user to entries and their number to numbers array
+                    activeRaffle.entries = [...entries, interaction.user.id];
+                    activeRaffle.numbers = [...numbers, number];
+                    await activeRaffle.save();
 
-                // Create an embed showing available numbers
-                const usedNumbers = activeRaffle.entries.map(entry => entry.number).sort((a, b) => a - b);
-                const availableNumbers = Array.from({length: 100}, (_, i) => i + 1)
-                    .filter(n => !usedNumbers.includes(n));
+                    const embed = new EmbedBuilder()
+                        .setTitle('🎫 Raffle Entry')
+                        .setColor('#00FF00')
+                        .setDescription(`${interaction.user} joined with number ${number}!`)
+                        .setFooter({ text: `Total Entries: ${activeRaffle.entries.length}` })
+                        .setTimestamp();
 
-                const embed = new EmbedBuilder()
-                    .setTitle('🎫 Raffle Entry Confirmed!')
-                    .setColor('#00FF00')
-                    .setDescription(`You joined with number ${number}!`)
-                    .addFields(
-                        { name: 'Taken Numbers', value: usedNumbers.join(', ') || 'None', inline: false },
-                        { name: 'Available Numbers', value: availableNumbers.length === 100 ? 'All numbers available!' : 
-                            availableNumbers.length > 20 ? `${availableNumbers.length} numbers available` : 
-                            availableNumbers.join(', '), inline: false }
-                    )
-                    .setFooter({ text: 'Good luck! 🍀' });
-
-                await interaction.reply({
-                    embeds: [embed],
-                    ephemeral: true
-                });
+                    await interaction.reply({ embeds: [embed] });
+                } catch (error) {
+                    console.error('Error joining raffle:', error);
+                    await interaction.reply({
+                        content: '❌ Failed to join the raffle. Please try again.',
+                        ephemeral: true
+                    });
+                }
                 break;
             }
 
