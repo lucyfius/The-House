@@ -39,7 +39,14 @@ const Raffle = sequelize.define('Raffle', {
     winners: {
         type: DataTypes.JSONB,
         defaultValue: [],
-        allowNull: false
+        allowNull: false,
+        get() {
+            const value = this.getDataValue('winners');
+            return Array.isArray(value) ? value : JSON.parse(value);
+        },
+        set(value) {
+            this.setDataValue('winners', JSON.stringify(value));
+        }
     },
     entries: {
         type: DataTypes.JSONB,
