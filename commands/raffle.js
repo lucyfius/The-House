@@ -471,8 +471,9 @@ This raffle has been cancelled by an administrator.
 
 **How to Enter:**
 • Use \`/raffle join\` with your lucky number (1-100)
-• The closest number wins!
-• Multiple winners can challenge each other to double their prizes
+• A random winning number will be drawn
+• The closest number(s) win!
+• Winners can challenge each other to combine prizes
 
 **Details:**
 🏆 Winners: ${winnerCount}

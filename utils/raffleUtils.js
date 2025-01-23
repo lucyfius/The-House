@@ -14,23 +14,40 @@ async function endRaffle(raffle, guild) {
             throw new Error('Raffle channel not found');
         }
 
-        // Pick winners
+        // Generate winning number between 1-100
+        const winningNumber = Math.floor(Math.random() * 100) + 1;
+        raffle.winningNumber = winningNumber;
+
+        // Find closest numbers
         const entries = raffle.entries || [];
-        const winners = [];
-        const numWinners = Math.min(raffle.winnerCount, entries.length);
+        const numbers = raffle.numbers || [];
+        const participants = entries.map((userId, index) => ({
+            userId,
+            number: numbers[index],
+            difference: Math.abs(numbers[index] - winningNumber)
+        }));
 
-        for (let i = 0; i < numWinners; i++) {
-            const winnerIndex = Math.floor(Math.random() * entries.length);
-            winners.push(entries.splice(winnerIndex, 1)[0]);
-        }
+        // Sort by closest to winning number
+        participants.sort((a, b) => a.difference - b.difference);
 
-        // Create winners announcement
+        // Select winners (closest numbers)
+        const winners = participants
+            .slice(0, raffle.winnerCount)
+            .map(p => p.userId);
+
+        // Create winners announcement with number details
         const embed = new EmbedBuilder()
             .setTitle('🎉 Raffle Ended!')
             .setColor('#00FF00')
             .setDescription(`
 Prize: ${raffle.prize}
-Winners: ${winners.map(w => `<@${w}>`).join(', ') || 'No winners'}
+🎯 Winning Number: ${winningNumber}
+
+Winners:
+${participants
+    .slice(0, raffle.winnerCount)
+    .map(p => `<@${p.userId}> (picked ${p.number}, off by ${p.difference})`)
+    .join('\n')}
 
 🎲 Winners can challenge each other to combine their prizes!
 Use \`/raffle bet\` to challenge another winner.`)
@@ -38,15 +55,12 @@ Use \`/raffle bet\` to challenge another winner.`)
 
         await channel.send({ embeds: [embed] });
 
-        // Add debug logging after picking winners
-        console.log('Debug - Raffle winners:', winners);
-
         // Update raffle status
         raffle.status = 'BETTING';
         raffle.winners = winners;
         await raffle.save();
 
-        console.log(`Raffle ${raffle.id} ended successfully with ${winners.length} winners`);
+        console.log(`Raffle ${raffle.id} ended successfully with ${winners.length} winners. Winning number: ${winningNumber}`);
 
     } catch (error) {
         console.error('Error in endRaffle:', error);
