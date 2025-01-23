@@ -37,8 +37,8 @@ async function endRaffle(raffle, guild) {
 
         console.log('Debug - Winners before storage:', winners);
 
-        // Store winners as a stringified array
-        raffle.winners = JSON.stringify(winners);
+        // Store winners directly (no JSON.stringify)
+        raffle.winners = winners;
         raffle.status = 'BETTING';
         await raffle.save();
 
@@ -46,7 +46,9 @@ async function endRaffle(raffle, guild) {
         const freshRaffle = await Raffle.findByPk(raffle.id);
         console.log('Debug - After storage:', {
             rawValue: freshRaffle.getDataValue('winners'),
-            parsedValue: freshRaffle.winners
+            parsedValue: freshRaffle.winners,
+            isArray: Array.isArray(freshRaffle.winners),
+            length: freshRaffle.winners.length
         });
 
         // Create winners announcement with number details

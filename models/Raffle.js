@@ -42,10 +42,11 @@ const Raffle = sequelize.define('Raffle', {
         allowNull: false,
         get() {
             const value = this.getDataValue('winners');
-            return Array.isArray(value) ? value : JSON.parse(value);
+            if (!value) return [];
+            return typeof value === 'string' ? JSON.parse(value) : value;
         },
         set(value) {
-            this.setDataValue('winners', JSON.stringify(value));
+            this.setDataValue('winners', value);
         }
     },
     entries: {

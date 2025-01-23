@@ -153,15 +153,23 @@ module.exports = {
                     });
                 }
 
-                // Get winners array using the getter
                 const winners = raffle.winners;
                 
                 console.log('Debug - Challenge check:', {
                     userId: interaction.user.id,
                     winners,
                     isArray: Array.isArray(winners),
-                    includes: winners.includes(interaction.user.id)
+                    includes: winners.includes(interaction.user.id),
+                    rawWinners: raffle.getDataValue('winners')
                 });
+
+                if (!Array.isArray(winners)) {
+                    console.error('Winners is not an array:', winners);
+                    return interaction.reply({
+                        content: '❌ Error processing winners list. Please contact an administrator.',
+                        ephemeral: true
+                    });
+                }
 
                 if (!winners.includes(interaction.user.id)) {
                     return interaction.reply({
