@@ -153,20 +153,41 @@ module.exports = {
                     });
                 }
 
-                // Ensure winners is properly parsed
-                const winners = Array.isArray(raffle.winners) ? raffle.winners : JSON.parse(raffle.winners);
-                
-                console.log('Debug - Challenge check:', {
+                console.log('Debug - Bet command:', {
                     userId: interaction.user.id,
                     rawWinners: raffle.winners,
-                    parsedWinners: winners,
-                    isUserWinner: winners.includes(interaction.user.id)
+                    rawType: typeof raffle.winners,
+                    isRawArray: Array.isArray(raffle.winners)
                 });
+
+                // Ensure winners is an array
+                let winners = raffle.winners;
+                if (typeof winners === 'string') {
+                    try {
+                        winners = JSON.parse(winners);
+                    } catch (e) {
+                        console.error('Failed to parse winners string:', e);
+                    }
+                }
+
+                console.log('Debug - Processed winners:', {
+                    winners,
+                    type: typeof winners,
+                    isArray: Array.isArray(winners)
+                });
+
+                if (!Array.isArray(winners)) {
+                    console.error('Winners is not an array:', winners);
+                    return interaction.reply({
+                        content: '❌ Error processing winners list. Please contact an administrator.',
+                        ephemeral: true
+                    });
+                }
 
                 // Check if user is a winner
                 if (!winners.includes(interaction.user.id)) {
                     return interaction.reply({
-                        content: '❌ Only raffle winners can initiate challenges!',
+                        content: `❌ Only raffle winners can initiate challenges! Debug: You are not in winners list: ${interaction.user.id}`,
                         ephemeral: true
                     });
                 }
