@@ -153,40 +153,28 @@ module.exports = {
                     });
                 }
 
-                // Ensure winners is an array
-                if (!Array.isArray(raffle.winners)) {
-                    console.log('Converting winners to array:', raffle.winners);
-                    raffle.winners = JSON.parse(JSON.stringify(raffle.winners));
-                }
-
-                // Detailed debug logging
-                console.log('Debug - Challenge attempt:', {
+                // Ensure winners is properly parsed
+                const winners = Array.isArray(raffle.winners) ? raffle.winners : JSON.parse(raffle.winners);
+                
+                console.log('Debug - Challenge check:', {
                     userId: interaction.user.id,
-                    winners: raffle.winners,
-                    isArray: Array.isArray(raffle.winners),
-                    winnerCheck: raffle.winners.includes(interaction.user.id),
-                    rawWinners: JSON.stringify(raffle.winners)
+                    rawWinners: raffle.winners,
+                    parsedWinners: winners,
+                    isUserWinner: winners.includes(interaction.user.id)
                 });
 
                 // Check if user is a winner
-                if (!raffle.winners.includes(interaction.user.id)) {
+                if (!winners.includes(interaction.user.id)) {
                     return interaction.reply({
-                        content: `❌ Only raffle winners can initiate challenges! Debug: You are not in winners list: ${raffle.winners.join(', ')}`,
+                        content: '❌ Only raffle winners can initiate challenges!',
                         ephemeral: true
                     });
                 }
 
                 const opponent = interaction.options.getUser('opponent');
 
-                // Debug opponent check
-                console.log('Debug - Opponent check:', {
-                    opponentId: opponent.id,
-                    winners: raffle.winners,
-                    isOpponentWinner: raffle.winners.includes(opponent.id)
-                });
-
-                // Validate opponent is also a winner
-                if (!raffle.winners.includes(opponent.id)) {
+                // Check if opponent is a winner
+                if (!winners.includes(opponent.id)) {
                     return interaction.reply({
                         content: '❌ You can only challenge other raffle winners!',
                         ephemeral: true
