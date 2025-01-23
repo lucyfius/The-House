@@ -50,15 +50,11 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('bet')
-                .setDescription('🎲 Challenge another winner to combine prizes')
+                .setDescription('🎲 Challenge another winner - Winner takes all prizes, loser gets nothing!')
                 .addUserOption(option =>
                     option.setName('opponent')
                         .setDescription('🤝 Which winner do you want to challenge?')
-                        .setRequired(true))
-                .addIntegerOption(option =>
-                    option.setName('amount')
-                        .setDescription('💵 Additional wager (optional)')
-                        .setRequired(false)))
+                        .setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('accept')
@@ -181,7 +177,6 @@ module.exports = {
                 }
 
                 const opponent = interaction.options.getUser('opponent');
-                const amount = interaction.options.getInteger('amount');
 
                 // Debug opponent check
                 console.log('Debug - Opponent check:', {
@@ -224,25 +219,27 @@ module.exports = {
                 raffle.bettingRound = {
                     challenger: interaction.user.id,
                     opponent: opponent.id,
-                    amount: amount,
                     status: 'PENDING',
                     timestamp: new Date()
                 };
                 await raffle.save();
 
                 const betEmbed = new EmbedBuilder()
-                    .setTitle('🎲 Challenge Results')
-                    .setColor('#FFD700')
+                    .setTitle('⚠️ High Stakes Challenge!')
+                    .setColor('#FF0000')
                     .setDescription(`
-${interaction.user} has challenged ${opponent} to gamble their winnings!
+${interaction.user} has challenged ${opponent} to a winner-takes-all duel!
 
-${amount ? `💰 Additional Wager: ${amount} units` : ''}
+⚠️ **WARNING:**
+• Winner will claim ALL raffle prizes
+• Loser will lose their prize completely
+• This action cannot be undone!
+
 ⏰ Expires: <t:${Math.floor(Date.now()/1000 + 300)}:R>
 
-${opponent}, use \`/raffle accept\` or \`/raffle decline\` to respond!
-
-🏆 Winner takes both raffle prizes${amount ? ' plus the wager' : ''}!`)
-                    .setFooter({ text: 'Challenge expires in 5 minutes' })
+${opponent}, do you accept the challenge?
+Use \`/raffle accept\` or \`/raffle decline\` to respond!`)
+                    .setFooter({ text: 'Think carefully - Challenge expires in 5 minutes' })
                     .setTimestamp();
 
                 await interaction.reply({ embeds: [betEmbed] });
@@ -309,7 +306,6 @@ ${opponent}, use \`/raffle accept\` or \`/raffle decline\` to respond!
 🎯 <@${raffle.bettingRound.challenger}>: ${challengerNumber}
 
 🏆 <@${winner}> wins and claims both raffle prizes!
-${raffle.bettingRound.amount ? `💰 Plus the ${raffle.bettingRound.amount} unit wager!` : ''}
 
 Better luck next time, <@${loser}>!`)
                     .setTimestamp();

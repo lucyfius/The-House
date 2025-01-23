@@ -56,8 +56,11 @@ ${participants
     .map(p => `<@${p.userId}> (picked ${p.number}, off by ${p.difference})`)
     .join('\n')}
 
-🎲 Winners can challenge each other to combine their prizes!
-Use \`/raffle bet\` to challenge another winner.`)
+🎲 **High Stakes Challenge System:**
+• Winners can challenge each other using \`/raffle bet\`
+• Winner of the challenge claims ALL prizes
+• Losers will forfeit their prize
+• Choose wisely!`)
             .setTimestamp();
 
         await channel.send({ embeds: [embed] });
