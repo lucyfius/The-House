@@ -142,8 +142,9 @@ module.exports = {
                 const raffle = await Raffle.findOne({
                     where: {
                         guildId: interaction.guild.id,
-                        status: 'BETTING'
-                    }
+                        status: ['BETTING', 'ENDED']
+                    },
+                    order: [['createdAt', 'DESC']]
                 });
 
                 if (!raffle) {
@@ -152,6 +153,12 @@ module.exports = {
                         ephemeral: true
                     });
                 }
+
+                console.log('Debug - Raffle found for betting:', {
+                    raffleId: raffle.id,
+                    status: raffle.status,
+                    winners: raffle.winners
+                });
 
                 const winners = raffle.winners;
                 
@@ -286,13 +293,8 @@ Use \`/raffle accept\` or \`/raffle decline\` to respond!`)
                 const winner = challengerNumber > opponentNumber ? 
                     raffle.bettingRound.challenger : 
                     raffle.bettingRound.opponent;
-                const loser = winner === raffle.bettingRound.challenger ? 
-                    raffle.bettingRound.opponent : 
-                    raffle.bettingRound.challenger;
 
                 // Update winners array to remove loser and keep only winner
-                raffle.winners = raffle.winners.filter(w => w !== loser);
-                
                 const resultEmbed = new EmbedBuilder()
                     .setTitle('🎲 Challenge Results')
                     .setColor('#FFD700')
@@ -300,13 +302,17 @@ Use \`/raffle accept\` or \`/raffle decline\` to respond!`)
 🎯 ${interaction.user}: ${opponentNumber}
 🎯 <@${raffle.bettingRound.challenger}>: ${challengerNumber}
 
-🏆 <@${winner}> wins and claims both raffle prizes!
+🏆 <@${winner}> wins and claims all raffle prizes!
 
-Better luck next time, <@${loser}>!`)
+Better luck next time, <@${winner === raffle.bettingRound.challenger ? 
+    raffle.bettingRound.opponent : 
+    raffle.bettingRound.challenger}>!`)
                     .setTimestamp();
 
-                // Clear betting round and save updated winners
+                // Clear betting round, update status, and save
                 raffle.bettingRound = null;
+                raffle.winners = [winner];
+                raffle.status = 'COMPLETED';
                 await raffle.save();
 
                 await interaction.reply({ embeds: [resultEmbed] });
