@@ -3,6 +3,12 @@ const Raffle = require('../models/Raffle');
 
 async function endRaffle(raffle, guild) {
     try {
+        // First check if raffle exists and is active
+        if (!raffle || raffle.status !== 'ACTIVE') {
+            console.log('Raffle not found or not active');
+            return;
+        }
+
         const channel = await guild.channels.fetch(raffle.channelId);
         if (!channel) {
             throw new Error('Raffle channel not found');
@@ -22,7 +28,11 @@ async function endRaffle(raffle, guild) {
         const embed = new EmbedBuilder()
             .setTitle('🎉 Raffle Ended!')
             .setColor('#00FF00')
-            .setDescription(`Prize: ${raffle.prize}\nWinners: ${winners.map(w => `<@${w}>`).join(', ') || 'No winners'}`)
+            .setDescription(`
+Prize: ${raffle.prize}
+Winners: ${winners.map(w => `<@${w}>`).join(', ') || 'No winners'}
+
+🎲 Winners can use \`/raffle bet\` to gamble their winnings against each other!`)
             .setTimestamp();
 
         await channel.send({ embeds: [embed] });
@@ -31,6 +41,8 @@ async function endRaffle(raffle, guild) {
         raffle.status = 'BETTING';
         raffle.winners = winners;
         await raffle.save();
+
+        console.log(`Raffle ${raffle.id} ended successfully with ${winners.length} winners`);
 
     } catch (error) {
         console.error('Error in endRaffle:', error);

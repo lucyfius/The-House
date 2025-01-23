@@ -50,15 +50,15 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('bet')
-                .setDescription('💰 Challenge another winner')
+                .setDescription('🎲 Gamble your winnings with another winner')
                 .addUserOption(option =>
                     option.setName('opponent')
-                        .setDescription('🤝 Who do you want to challenge?')
+                        .setDescription('🤝 Which winner do you want to challenge?')
                         .setRequired(true))
                 .addIntegerOption(option =>
                     option.setName('amount')
-                        .setDescription('💵 How much do you want to bet?')
-                        .setRequired(true)))
+                        .setDescription('💵 Additional amount to wager (optional)')
+                        .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('accept')
@@ -209,16 +209,18 @@ module.exports = {
                 await raffle.save();
 
                 const betEmbed = new EmbedBuilder()
-                    .setTitle('🎲 Betting Challenge')
+                    .setTitle('🎲 Winner Challenge')
                     .setColor('#FFD700')
                     .setDescription(`
-${interaction.user} has challenged ${opponent} to a bet!
+${interaction.user} has challenged ${opponent} to gamble their winnings!
 
-💰 Amount: ${amount} units
+${amount ? `💰 Additional Wager: ${amount} units` : ''}
 ⏰ Expires: <t:${Math.floor(Date.now()/1000 + 300)}:R>
 
-${opponent}, use \`/raffle accept\` or \`/raffle decline\` to respond!`)
-                    .setFooter({ text: 'Bet expires in 5 minutes' })
+${opponent}, use \`/raffle accept\` or \`/raffle decline\` to respond!
+
+🏆 Winner takes both raffle prizes${amount ? ' plus the wager' : ''}!`)
+                    .setFooter({ text: 'Challenge expires in 5 minutes' })
                     .setTimestamp();
 
                 await interaction.reply({ embeds: [betEmbed] });
@@ -263,23 +265,38 @@ ${opponent}, use \`/raffle accept\` or \`/raffle decline\` to respond!`)
                     });
                 }
 
-                // Update betting round status
-                raffle.bettingRound.status = 'ACTIVE';
-                await raffle.save();
+                // Generate random number for each player
+                const challengerNumber = Math.floor(Math.random() * 100) + 1;
+                const opponentNumber = Math.floor(Math.random() * 100) + 1;
 
-                const acceptEmbed = new EmbedBuilder()
-                    .setTitle('🎲 Bet Accepted!')
-                    .setColor('#00FF00')
+                const winner = challengerNumber > opponentNumber ? 
+                    raffle.bettingRound.challenger : 
+                    raffle.bettingRound.opponent;
+                const loser = winner === raffle.bettingRound.challenger ? 
+                    raffle.bettingRound.opponent : 
+                    raffle.bettingRound.challenger;
+
+                // Update winners array to remove loser and keep only winner
+                raffle.winners = raffle.winners.filter(w => w !== loser);
+                
+                const resultEmbed = new EmbedBuilder()
+                    .setTitle('🎲 Challenge Results')
+                    .setColor('#FFD700')
                     .setDescription(`
-💫 The bet is on! 
+�� ${interaction.user}: ${opponentNumber}
+🎯 <@${raffle.bettingRound.challenger}>: ${challengerNumber}
 
-🤝 Players: <@${raffle.bettingRound.challenger}> vs <@${raffle.bettingRound.opponent}>
-💰 Amount: ${raffle.bettingRound.amount} units
+🏆 <@${winner}> wins and claims both raffle prizes!
+${raffle.bettingRound.amount ? `💰 Plus the ${raffle.bettingRound.amount} unit wager!` : ''}
 
-Use \`/betstats add\` to record the result when done!`)
+Better luck next time, <@${loser}>!`)
                     .setTimestamp();
 
-                await interaction.reply({ embeds: [acceptEmbed] });
+                // Clear betting round and save updated winners
+                raffle.bettingRound = null;
+                await raffle.save();
+
+                await interaction.reply({ embeds: [resultEmbed] });
                 break;
             }
 
@@ -472,7 +489,22 @@ This raffle has been cancelled by an administrator.
                 });
 
                 // Schedule raffle end
-                setTimeout(() => endRaffle(message.id), duration * 60000);
+                setTimeout(async () => {
+                    try {
+                        const raffleToEnd = await Raffle.findOne({
+                            where: {
+                                messageId: message.id,
+                                status: 'ACTIVE'
+                            }
+                        });
+                        
+                        if (raffleToEnd) {
+                            await endRaffle(raffleToEnd, interaction.guild);
+                        }
+                    } catch (error) {
+                        console.error('Error ending raffle:', error);
+                    }
+                }, duration * 60000);
                 break;
             }
         }
