@@ -413,7 +413,15 @@ This raffle has been cancelled by an administrator.
                     });
                 }
 
-                if (activeRaffle) {
+                // Check for existing active raffle
+                const existingRaffle = await Raffle.findOne({
+                    where: {
+                        guildId: interaction.guild.id,
+                        status: 'ACTIVE'
+                    }
+                });
+
+                if (existingRaffle) {
                     return interaction.reply({
                         content: '❌ There is already an active raffle! Wait for it to end before starting a new one.',
                         ephemeral: true
