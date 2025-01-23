@@ -64,7 +64,7 @@ ${participants
     .join('\n')}
 
 🎲 **High Stakes Challenge System:**
-• Winners can challenge each other using \`/raffle bet\`
+• Winners can challenge each other using \`/raffle gamble\`
 • Winner of the challenge claims ALL prizes
 • Losers will forfeit their prize
 • Choose wisely!`)

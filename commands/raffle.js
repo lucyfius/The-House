@@ -49,7 +49,7 @@ module.exports = {
                 .setDescription('❌ Cancel the current raffle (Admin only)'))
         .addSubcommand(subcommand =>
             subcommand
-                .setName('bet')
+                .setName('gamble')
                 .setDescription('🎲 Challenge another winner - Winner takes all prizes, loser gets nothing!')
                 .addUserOption(option =>
                     option.setName('opponent')
@@ -146,7 +146,7 @@ module.exports = {
                 break;
             }
 
-            case 'bet': {
+            case 'gamble': {
                 const raffle = await Raffle.findOne({
                     where: {
                         guildId: interaction.guild.id,
@@ -220,7 +220,7 @@ module.exports = {
                     raffle.bettingRound.opponent === opponent.id
                 )) {
                     return interaction.reply({
-                        content: '❌ One of the users is already in an active bet!',
+                        content: '❌ One of the users is already in an active challenge!',
                         ephemeral: true
                     });
                 }
@@ -357,9 +357,9 @@ Better luck next time, <@${winner === raffle.bettingRound.challenger ?
                 await raffle.save();
 
                 const declineEmbed = new EmbedBuilder()
-                    .setTitle('🚫 Bet Declined')
+                    .setTitle('🚫 Challenge Declined')
                     .setColor('#FF0000')
-                    .setDescription(`<@${interaction.user.id}> has declined the betting challenge.`)
+                    .setDescription(`<@${interaction.user.id}> has declined the challenge.`)
                     .setTimestamp();
 
                 await interaction.reply({ embeds: [declineEmbed] });
@@ -490,7 +490,7 @@ This raffle has been cancelled by an administrator.
 • Use \`/raffle join\` with your lucky number (1-100)
 • A random winning number will be drawn
 • The closest number(s) win!
-• Winners can challenge each other to combine prizes
+• Winners can challenge each other using \`/raffle gamble\`
 
 **Details:**
 🏆 Winners: ${winnerCount}
