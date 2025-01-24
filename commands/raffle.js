@@ -41,6 +41,10 @@ module.exports = {
                         .setMaxValue(100)))
         .addSubcommand(subcommand =>
             subcommand
+                .setName('leave')
+                .setDescription('🚪 Leave the active raffle'))
+        .addSubcommand(subcommand =>
+            subcommand
                 .setName('end')
                 .setDescription('🏁 End the current raffle (Admin only)'))
         .addSubcommand(subcommand =>
@@ -76,6 +80,67 @@ module.exports = {
         const subcommand = interaction.options.getSubcommand();
 
         switch (subcommand) {
+            case 'leave': {
+                // Rate limit for leave command
+                const leaveRateLimit = checkRateLimit(interaction.user.id, 'raffle-leave', 5);
+                if (leaveRateLimit.limited) {
+                    return interaction.reply({
+                        content: `⏰ Please wait ${leaveRateLimit.timeLeft} seconds before trying to leave again.`,
+                        ephemeral: true
+                    });
+                }
+
+                // Check for active raffle
+                const activeRaffle = await Raffle.findOne({
+                    where: {
+                        guildId: interaction.guild.id,
+                        status: 'ACTIVE'
+                    }
+                });
+
+                if (!activeRaffle) {
+                    return interaction.reply({
+                        content: '❌ There is no active raffle to leave!',
+                        ephemeral: true
+                    });
+                }
+
+                const entries = activeRaffle.entries || [];
+                const numbers = activeRaffle.numbers || [];
+
+                // Check if user is in the raffle
+                const userIndex = entries.indexOf(interaction.user.id);
+                if (userIndex === -1) {
+                    return interaction.reply({
+                        content: '❌ You are not in this raffle!',
+                        ephemeral: true
+                    });
+                }
+
+                try {
+                    // Remove user from entries and their number from numbers array
+                    activeRaffle.entries = entries.filter((_, index) => index !== userIndex);
+                    activeRaffle.numbers = numbers.filter((_, index) => index !== userIndex);
+                    await activeRaffle.save();
+
+                    const embed = new EmbedBuilder()
+                        .setTitle('👋 Raffle Leave')
+                        .setColor('#FF0000')
+                        .setDescription(`${interaction.user} has left the raffle.`)
+                        .setFooter({ text: `Total Entries: ${activeRaffle.entries.length}` })
+                        .setTimestamp();
+
+                    await interaction.reply({ embeds: [embed] });
+                } catch (error) {
+                    console.error('Error leaving raffle:', error);
+                    await interaction.reply({
+                        content: '❌ Failed to leave the raffle. Please try again.',
+                        ephemeral: true
+                    });
+                }
+                break;
+            }
+
             case 'join': {
                 // Rate limit for join command
                 const joinRateLimit = checkRateLimit(interaction.user.id, 'raffle-join', 5);
