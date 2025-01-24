@@ -4,6 +4,66 @@ const { checkRateLimit, checkRaidPrevention } = require('../utils/rateLimiter');
 const Raffle = require('../models/Raffle');
 const { client } = require('../index.js');
 const { endRaffle } = require('../utils/raffleUtils');
+const ms = require('ms');
+
+// Helper function to convert duration to milliseconds
+function parseDuration(duration) {
+    try {
+        const milliseconds = ms(duration);
+        if (!milliseconds) throw new Error('Invalid duration');
+        if (milliseconds < 5000) throw new Error('Duration too short'); // Minimum 5 seconds
+        if (milliseconds > ms('7d')) throw new Error('Duration too long'); // Maximum 7 days
+        return milliseconds;
+    } catch (error) {
+        throw new Error('Invalid duration format. Examples: 30s, 5m, 2h, 1d');
+    }
+}
+
+// Helper function to format milliseconds to human readable
+function formatDuration(milliseconds) {
+    const seconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}d`;
+    if (hours > 0) return `${hours}h`;
+    if (minutes > 0) return `${minutes}m`;
+    return `${seconds}s`;
+}
+
+// Helper function to update raffle message
+async function updateRaffleMessage(raffle, channel) {
+    try {
+        const message = await channel.messages.fetch(raffle.messageId);
+        if (!message) return;
+
+        const endTime = new Date(raffle.endTime);
+        const embed = new EmbedBuilder()
+            .setTitle('🎰 New Raffle Started!')
+            .setColor('#FFD700')
+            .setDescription(`
+**Prize:** ${raffle.prize}
+
+**How to Enter:**
+• Use \`/raffle join\` with your lucky number (1-100)
+• A random winning number will be drawn
+• The closest number(s) win!
+• Winners can challenge each other using \`/raffle gamble\`
+
+**Details:**
+🏆 Winners: ${raffle.winnerCount}
+⏰ Ends: <t:${Math.floor(endTime.getTime() / 1000)}:R>
+👥 Current Entries: ${raffle.entries.length}
+            `)
+            .setFooter({ text: 'May the odds be ever in your favor!' })
+            .setTimestamp();
+
+        await message.edit({ embeds: [embed] });
+    } catch (error) {
+        console.error('Error updating raffle message:', error);
+    }
+}
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -23,12 +83,10 @@ module.exports = {
                         .setRequired(true)
                         .setMinValue(1)
                         .setMaxValue(10))
-                .addIntegerOption(option =>
-                    option.setName('minutes')
-                        .setDescription('⏰ How long should the raffle last?')
-                        .setRequired(true)
-                        .setMinValue(1)
-                        .setMaxValue(10080)))
+                .addStringOption(option =>
+                    option.setName('duration')
+                        .setDescription('⏰ How long? (e.g., 30s, 5m, 2h, 1d)')
+                        .setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('join')
@@ -123,6 +181,9 @@ module.exports = {
                     activeRaffle.numbers = numbers.filter((_, index) => index !== userIndex);
                     await activeRaffle.save();
 
+                    // Update the raffle message
+                    await updateRaffleMessage(activeRaffle, interaction.channel);
+
                     const embed = new EmbedBuilder()
                         .setTitle('👋 Raffle Leave')
                         .setColor('#FF0000')
@@ -192,6 +253,9 @@ module.exports = {
                     activeRaffle.entries = [...entries, interaction.user.id];
                     activeRaffle.numbers = [...numbers, number];
                     await activeRaffle.save();
+
+                    // Update the raffle message
+                    await updateRaffleMessage(activeRaffle, interaction.channel);
 
                     const embed = new EmbedBuilder()
                         .setTitle('🎫 Raffle Entry')
@@ -542,8 +606,20 @@ This raffle has been cancelled by an administrator.
 
                 const prize = interaction.options.getString('prize');
                 const winnerCount = interaction.options.getInteger('winners');
-                const duration = interaction.options.getInteger('minutes');
-                const endTime = new Date(Date.now() + duration * 60000);
+                const durationStr = interaction.options.getString('duration');
+
+                let duration;
+                try {
+                    duration = parseDuration(durationStr);
+                } catch (error) {
+                    return interaction.reply({
+                        content: `❌ ${error.message}`,
+                        ephemeral: true
+                    });
+                }
+
+                const endTime = new Date(Date.now() + duration);
+                const formattedDuration = formatDuration(duration);
 
                 const startEmbed = new EmbedBuilder()
                     .setTitle('🎰 New Raffle Started!')
@@ -559,6 +635,7 @@ This raffle has been cancelled by an administrator.
 
 **Details:**
 🏆 Winners: ${winnerCount}
+⏰ Duration: ${formattedDuration}
 ⏰ Ends: <t:${Math.floor(endTime.getTime() / 1000)}:R>
 👥 Current Entries: 0
                     `)
@@ -600,7 +677,7 @@ This raffle has been cancelled by an administrator.
                     } catch (error) {
                         console.error('Error ending raffle:', error);
                     }
-                }, duration * 60000);
+                }, duration);
                 break;
             }
         }

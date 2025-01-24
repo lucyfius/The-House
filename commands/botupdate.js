@@ -12,35 +12,38 @@ module.exports = {
             .setDescription(`
 **Latest Updates (v1.1.0)**
 
-🎭 **Role Management**
-• Reaction roles system
-• Auto-role assignment
-• Role removal on unreact
-• Multiple roles per message
+🎰 **Raffle System Improvements**
+• New flexible duration system (e.g., "30s", "5m", "2h", "1d")
+• New \`/raffle leave\` command to exit active raffles
+• Rate limiting for leave command to prevent spam
+• Clear feedback messages when leaving
+• Auto-updating entry count display
+• Reliable raffle end timer system
+• Better error handling for edge cases
 
-🎰 **Enhanced Raffle System**
-• Anti-spam protection
-• Rate limiting
-• Raid prevention
-• Better error handling
-
-🎲 **Improved Betting**
-• Automatic bet expiration
-• Challenge system
-• Winner verification
-• Unit tracking
+🎲 **Betting System Enhancements**
+• Auto-expiring betting challenges
+• Improved winner verification
+• Better challenge state management
+• Enhanced betting round validation
+• Clearer betting feedback messages
 
 🔧 **Technical Updates**
-• Performance optimizations
+• Periodic checks for expired raffles
+• Database consistency checks
+• Entry validation improvements
 • Better error handling
 • Improved stability
-• Memory usage optimizations
+• Memory optimizations
+• Enhanced logging system
+• Sequelize model improvements
 
 📊 **Admin Features**
-• Enhanced logging
+• Enhanced logging capabilities
 • Better command feedback
-• Improved permissions
-• Server management tools
+• Improved error messages
+• Better state management
+• Enhanced permission checks
 
 📅 Last Updated: ${new Date().toLocaleDateString()}
             `)

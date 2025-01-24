@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 const Raffle = require('../models/Raffle');
+const { Op } = require('sequelize');
 
 async function endRaffle(raffle, guild) {
     try {
@@ -80,4 +81,31 @@ ${participants
     }
 }
 
-module.exports = { endRaffle }; 
+// Function to check for expired raffles
+async function checkExpiredRaffles(client) {
+    try {
+        const expiredRaffles = await Raffle.findAll({
+            where: {
+                status: 'ACTIVE',
+                endTime: {
+                    [Op.lt]: new Date()
+                }
+            }
+        });
+
+        for (const raffle of expiredRaffles) {
+            try {
+                const guild = await client.guilds.fetch(raffle.guildId);
+                if (guild) {
+                    await endRaffle(raffle, guild);
+                }
+            } catch (error) {
+                console.error(`Error ending expired raffle ${raffle.id}:`, error);
+            }
+        }
+    } catch (error) {
+        console.error('Error checking expired raffles:', error);
+    }
+}
+
+module.exports = { endRaffle, checkExpiredRaffles }; 

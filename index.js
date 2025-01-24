@@ -6,6 +6,7 @@ const { initDatabase } = require('./config/database');
 const Logger = require('./utils/logger');
 const ReactionRole = require('./models/ReactionRole');
 const { sequelize } = require('./config/database');
+const { checkExpiredRaffles } = require('./utils/raffleUtils');
 
 const client = new Client({
     intents: [
@@ -116,6 +117,11 @@ client.once('ready', async () => {
                 }))
             }))
         );
+
+        // Check for expired raffles every minute
+        setInterval(() => {
+            checkExpiredRaffles(client);
+        }, 60000); // 60000 ms = 1 minute
     } catch (error) {
         console.error('Error in ready event:', error);
     }
